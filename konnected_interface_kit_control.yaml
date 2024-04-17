@@ -1,0 +1,234 @@
+blueprint:
+  name: Konnected Interface Kit Control
+  description: Synchronises an alarm control panel entity with a Konnected Interface Kit using a key switch and a programable output which determines if the physical alarm is set.
+  domain: automation
+  input:
+    alarm_control_panel:
+      name: Alarm Control Panel
+      description: This is the alarm control panel entity to synchronise with the Konnected Interface Kit.
+      selector:
+        entity:
+          filter:
+            domain: alarm_control_panel
+    konnected_alarm_set:
+      name: Konnected Alarm Set
+      description: This is the programable output which determines if the physical alarm is set.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+    konnected_alarm_triggered:
+      name: Konnected Alarm Triggered
+      description: This is the programable output which determines if the physical alarm is triggered. This can be connected to the siren output.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+    arm_alarm_control_panel_action:
+      name: Arm Control Panel Alarm Action
+      description: This is the action used to arm the alarm control panel entity to armed away mode. This works best if the exit delay is skipped.
+      selector:
+        action:
+    disarm_alarm_control_panel_action:
+      name: Disarm Control Panel Alarm Action
+      description: This is the action used to disarm the alarm control panel entity.
+      selector:
+        action:
+    arm_konnected_alarm_action:
+      name: Arm Konnected Alarm Action
+      description: This is the action used to arm the physical alarm to armed away mode.
+      selector:
+        action:
+    disarm_konnected_alarm_action:
+      name: Disarm Konnected Alarm Action
+      description: This is the action used to disarm the physical alarm.
+      selector:
+        action:
+    entry_delay:
+      name: Entry Delay
+      description: The entry delay of the physical alarm. The entry delay of the alarm control panel entity should be set to be 10 seconds longer than this.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 180
+          mode: slider
+          step: 10
+          unit_of_measurement: sec
+    exit_delay:
+      name: Exit Delay
+      description: The exit delay set of the physical alarm.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 180
+          mode: slider
+          step: 10
+          unit_of_measurement: sec
+variables:
+  alarm_control_panel_var: !input "alarm_control_panel"
+  entry_delay_var: !input "entry_delay"
+  exit_delay_var: !input "exit_delay"
+mode: restart
+max_exceeded: silent
+trace:
+  stored_traces: 15
+trigger:
+  - platform: state
+    entity_id:
+      - !input "alarm_control_panel"
+    id: alarm_control_panel_changes
+  - platform: state
+    entity_id:
+      - !input "konnected_alarm_set"
+    id: konnected_alarm_set_changes
+  - platform: state
+    entity_id:
+      - !input "konnected_alarm_triggered"
+    id: konnected_alarm_triggered_changes
+condition:
+  - condition: template
+    value_template: "{{ trigger.to_state.context.parent_id != trigger.from_state.context.id }}"
+action:
+  - if:
+      - condition: state
+        entity_id: !input "alarm_control_panel"
+        state: pending
+    then:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: "{{ max(entry_delay_var + 5 - (as_timestamp(now()) - as_timestamp(states[alarm_control_panel_var].last_updated)), 0) }}"
+          milliseconds: 0
+      - if:
+          - condition: state
+            entity_id: !input "konnected_alarm_triggered"
+            state: "off"
+        then: !input "disarm_alarm_control_panel_action"
+    else:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: alarm_control_panel_changes
+            sequence:
+              - choose:
+                  - conditions:
+                      - condition: state
+                        entity_id: !input "alarm_control_panel"
+                        state: disarmed
+                    sequence:
+                      - if:
+                          - condition: or
+                            conditions:
+                              - condition: state
+                                entity_id: !input "konnected_alarm_set"
+                                state: "on"
+                              - condition: template
+                                value_template: >-
+                                  {{ trigger.from_state.state == 'arming' and trigger.from_state.attributes.arm_mode == 'armed_away' }}
+                              - condition: template
+                                value_template: >-
+                                  {{ trigger.from_state.state == 'triggered' or (trigger.from_state.state == 'pending' and (as_timestamp(trigger.to_state.last_updated) - as_timestamp(trigger.from_state.last_updated)) < entry_delay_var + 5) }}
+                        then: !input "disarm_konnected_alarm_action"
+                  - conditions:
+                      - condition: or
+                        conditions:
+                          - condition: and
+                            conditions:
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                state: arming
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                attribute: arm_mode
+                                state: armed_away
+                          - condition: and
+                            conditions:
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                state: armed_away
+                              - condition: template
+                                value_template: >-
+                                  {{ not(trigger.from_state.state == 'arming' and trigger.from_state.attributes.arm_mode == 'armed_away') }}
+                    sequence:
+                      - if:
+                          - condition: state
+                            entity_id: !input "konnected_alarm_set"
+                            state: "off"
+                        then: !input "arm_konnected_alarm_action"
+                      - delay:
+                          seconds: "{{ exit_delay_var + 5 }}"
+                      - if:
+                          - condition: state
+                            entity_id: !input "konnected_alarm_set"
+                            state: "off"
+                          - condition: state
+                            entity_id: !input "alarm_control_panel"
+                            state: arming
+                          - condition: state
+                            entity_id: !input "alarm_control_panel"
+                            attribute: arm_mode
+                            state: armed_away
+                        then: !input "disarm_alarm_control_panel_action"
+          - conditions:
+              - condition: trigger
+                id: konnected_alarm_set_changes
+            sequence:
+              - if:
+                  - condition: state
+                    entity_id: !input "konnected_alarm_set"
+                    state: "on"
+                then:
+                  - if:
+                      - condition: not
+                        conditions:
+                          - condition: or
+                            conditions:
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                state: armed_away
+                              - condition: and
+                                conditions:
+                                  - condition: state
+                                    entity_id: !input "alarm_control_panel"
+                                    state: arming
+                                  - condition: state
+                                    entity_id: !input "alarm_control_panel"
+                                    attribute: arm_mode
+                                    state: armed_away
+                    then: !input "arm_alarm_control_panel_action"
+                else:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: state
+                            entity_id: !input "alarm_control_panel"
+                            state: armed_away
+                          - condition: and
+                            conditions:
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                state: arming
+                              - condition: state
+                                entity_id: !input "alarm_control_panel"
+                                attribute: arm_mode
+                                state: armed_away
+                    then: !input "disarm_alarm_control_panel_action"
+          - conditions:
+              - condition: trigger
+                id: konnected_alarm_triggered_changes
+            sequence:
+              - if:
+                  - condition: state
+                    entity_id: !input "konnected_alarm_triggered"
+                    state: "off"
+                  - condition: or
+                    conditions:
+                      - condition: state
+                        entity_id: !input "alarm_control_panel"
+                        state: pending
+                      - condition: state
+                        entity_id: !input "alarm_control_panel"
+                        state: triggered
+                then: !input "disarm_alarm_control_panel_action"

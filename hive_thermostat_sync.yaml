@@ -1,0 +1,47 @@
+blueprint:
+  name: Hive Thermostat Sync
+  description: Syncronises a custom thermostat with a hive thermostat.
+  domain: automation
+  input:
+    hive_thermostat:
+      name: Hive Thermostat
+      description: The hive thermostat.
+      selector:
+        entity:
+          filter:
+            domain: climate
+    custom_thermostat:
+      name: Custom Thermostat
+      description: The custom thermostat which will control the air condition.
+      selector:
+        entity:
+          filter:
+            domain: climate
+variables:
+  custom_thermostat_var: !input "custom_thermostat"
+mode: restart
+max_exceeded: silent
+trigger:
+  - platform: state
+    entity_id: !input "custom_thermostat"
+    id: custom_thermostat
+condition: []
+action:
+  - if:
+      - condition: state
+        entity_id: !input "custom_thermostat"
+        state: "off"
+    then:
+      - service: climate.set_temperature
+        data:
+          temperature: 1
+          hvac_mode: "heat"
+        target:
+          entity_id: !input "hive_thermostat"
+    else:
+      - service: climate.set_temperature
+        data:
+          temperature: "{{ state_attr(custom_thermostat_var, 'temperature') }}"
+          hvac_mode: "heat"
+        target:
+          entity_id: !input "hive_thermostat"

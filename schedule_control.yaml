@@ -1,0 +1,349 @@
+blueprint:
+  name: Schedule Control
+  description: Controls a schedie entity using an alarm control panel, occupancy boolean and a schedule always on binary sensor.
+  domain: automation
+  input:
+    schedule:
+      name: Schedule
+      description: This is the schedule entity which controls which is being controlled.
+      selector:
+        entity:
+          filter:
+            integration: scheduler
+    controling_entities:
+      name: Controling Entities
+      description: If enabled, the schedule will be turned on or off when these entities are turned on or off
+      default: []
+      selector:
+        entity:
+          multiple: true
+    home_occupancy:
+      name: Home Occupancy
+      description: If populated, these home occupancy sensors will turn off the schedule toggle when no occupancy is detected.
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+          multiple: true
+    area_occupancy:
+      name: Area Occupancy
+      description: If populated, the area occupancy will turn on and off the schedule.
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: input_boolean
+    override_sensor:
+      name: Override Sensor
+      description: If populated, these binary sensors which determine if the scheudle should be overridden. This is useful to force an action at certain times.
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+          multiple: true
+    deactivating_sensors:
+      name: Deactivating Sensors
+      description: If populated, these deactivating binary sensors will turn off the schedule when turned on for some amount of time. This is useful for door sensors.
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+          multiple: true
+    deactivating_sensors_time_limit:
+      name: Deactivating Sensors Time Limit
+      description: The amount of time that a deactivating sensor must be on for in seconds before the schedule is turned off.
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 600
+          step: 5
+          unit_of_measurement: s
+          mode: slider
+    unoccupied_time_limit:
+      name: Unoccupied Time Limit
+      description: The amount of time that a room must be unoccupied for in hours before the schedule is no longer turned on.
+      default: 24
+      selector:
+        number:
+          min: 0
+          max: 168
+          step: 1
+          unit_of_measurement: h
+          mode: slider
+    nominal_change_history:
+      name: Nominal Change History
+      description: The nominal change history entity, which ensures that home assistant restarts do not reset the unoccupied time limit.
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: sensor
+    schedule_always_on_home_only:
+      name: Scedule Always On (Home Only)
+      description: These optional binary sensors determine when the schedule is always on, but only if someone is home (as determined by the home occupancy entity).
+      default: []
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+          multiple: true
+    schedule_off_action:
+      name: Schedule Off Action
+      description: This is the optional action which will run when the schedule is turned off.
+      default: []
+      selector:
+        action:
+    override_action:
+      name: Override Action
+      description: If populated, this action which will be ran when the scheudle has been overriden.
+      default: []
+      selector:
+        action:
+variables:
+  deactivating_sensors_time_limit_var: !input "deactivating_sensors_time_limit"
+  area_occupancy_var: !input "area_occupancy"
+  schedule_off_action_var: !input "schedule_off_action"
+  deactivating_sensors_var: !input "deactivating_sensors"
+  home_occupancy_var: !input "home_occupancy"
+  schedule_always_on_home_only_var: !input "schedule_always_on_home_only"
+  override_sensor_var: !input "override_sensor"
+  unoccupied_time_limit_var: !input "unoccupied_time_limit"
+  nominal_change_history_var: !input "nominal_change_history"
+  override_action_var: !input "override_action"
+mode: restart
+max_exceeded: silent
+trigger:
+  - platform: state
+    entity_id: !input "controling_entities"
+    to: "off"
+    id: controling_entities_off
+  - platform: state
+    entity_id: !input "schedule"
+    attribute: current_slot
+    id: schedule_current_slot
+  - platform: state
+    entity_id: !input "home_occupancy"
+    not_to:
+      - "unknown"
+      - unavailable
+  - platform: state
+    entity_id: !input "deactivating_sensors"
+    not_to:
+      - "unknown"
+      - unavailable
+    id: deactivating_sensors
+  - platform: state
+    entity_id: !input "schedule_always_on_home_only"
+    not_to:
+      - "unknown"
+      - unavailable
+  - platform: state
+    entity_id: !input "override_sensor"
+    not_to:
+      - "unknown"
+      - unavailable
+    id: override_sensor
+  - platform: state
+    entity_id: !input "area_occupancy"
+    not_to:
+      - "unknown"
+      - unavailable
+  - platform: state
+    entity_id: !input "schedule"
+    to: "off"
+    id: schedule_off
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: controling_entities_off
+        sequence:
+          - if:
+              - condition: state
+                entity_id: !input "controling_entities"
+                state: "off"
+            then:
+              - service: switch.turn_off
+                target:
+                  entity_id: !input "schedule"
+      - conditions:
+          - condition: trigger
+            id: schedule_current_slot
+        sequence:
+          - if:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: !input "controling_entities"
+                    state: "off"
+            then:
+              - service: switch.turn_on
+                target:
+                  entity_id: !input "schedule"
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ override_sensor_var == [] }}"
+              - condition: state
+                entity_id: !input "override_sensor"
+                state:
+                  - "off"
+                  - "unknown"
+                  - unavailable
+        sequence:
+          - if:
+              - condition: trigger
+                id: schedule_off
+            then:
+              - if:
+                  - condition: template
+                    value_template: "{{ schedule_off_action_var != [] }}"
+                then: !input "schedule_off_action"
+            else:
+              - delay:
+                  seconds: >
+                    {% set ns=namespace(recently_deactivated_timer = deactivating_sensors_time_limit_var) %}
+                    {% for deactivating_sensor_var in deactivating_sensors_var %}
+                      {% if states(deactivating_sensor_var) == "on" %}
+                        {% set ns.recently_deactivated_timer = min(ns.recently_deactivated_timer, as_timestamp(now()) - as_timestamp(states[deactivating_sensor_var].last_changed)) %}
+                        {% break %}
+                      {% endif %}
+                    {% endfor %}
+                    {{ deactivating_sensors_time_limit_var - ns.recently_deactivated_timer }}
+              - if:
+                  - condition: or
+                    conditions:
+                      - condition: template
+                        value_template: "{{ home_occupancy_var == [] }}"
+                      - condition: state
+                        entity_id: !input "home_occupancy"
+                        state: "on"
+                        match: any
+                  - condition: or
+                    conditions:
+                      - condition: template
+                        value_template: "{{ deactivating_sensors_var == [] }}"
+                      - condition: not
+                        conditions:
+                          - condition: state
+                            entity_id: !input "deactivating_sensors"
+                            match: any
+                            state: "on"
+                then:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: template
+                            value_template: "{{ schedule_always_on_home_only_var == [] }}"
+                          - condition: or
+                            conditions:
+                              - condition: state
+                                entity_id: !input "schedule_always_on_home_only"
+                                state:
+                                  - "off"
+                                  - "unknown"
+                                  - unavailable
+                              - condition: template
+                                value_template: >
+                                  {{ area_occupancy_var != [] and
+                                  nominal_change_history_var != [] and
+                                  state_attr(nominal_change_history_var, 'changes') != None and
+                                  area_occupancy_var in state_attr(nominal_change_history_var, 'changes') and
+                                  now() | as_timestamp - state_attr(nominal_change_history_var, 'changes')[area_occupancy_var] | as_timestamp > unoccupied_time_limit_var * 3600 }}
+                              - condition: template
+                                value_template: >
+                                  {{ area_occupancy_var != [] and
+                                  not(nominal_change_history_var != [] and
+                                      state_attr(nominal_change_history_var, 'changes') != None and
+                                      area_occupancy_var in state_attr(nominal_change_history_var, 'changes')) and
+                                  now() | as_timestamp - states[area_occupancy_var].last_changed | as_timestamp > unoccupied_time_limit_var * 3600 }}
+                    then:
+                      - if:
+                          - condition: template
+                            value_template: "{{ area_occupancy_var != [] }}"
+                          - condition: state
+                            entity_id: !input "area_occupancy"
+                            state: "on"
+                        then:
+                          - service: switch.turn_on
+                            target:
+                              entity_id: !input "schedule"
+                        else:
+                          - service: switch.turn_off
+                            target:
+                              entity_id: !input "schedule"
+                    else:
+                      - service: switch.turn_on
+                        target:
+                          entity_id: !input "schedule"
+                else:
+                  - if:
+                      - condition: or
+                        conditions:
+                          - condition: and
+                            conditions:
+                              - condition: template
+                                value_template: "{{ deactivating_sensors_var != [] }}"
+                              - condition: state
+                                entity_id: !input "deactivating_sensors"
+                                match: any
+                                state: "on"
+                          - condition: and
+                            conditions:
+                              - condition: template
+                                value_template: "{{ home_occupancy_var != [] }}"
+                              - condition: state
+                                entity_id: !input "home_occupancy"
+                                state: "off"
+                    then:
+                      - service: switch.turn_off
+                        target:
+                          entity_id: !input "schedule"
+                    else:
+                      - if:
+                          - condition: template
+                            value_template: "{{ area_occupancy_var != [] }}"
+                          - condition: state
+                            entity_id: !input "area_occupancy"
+                            state: "on"
+                        then:
+                          - service: switch.turn_on
+                            target:
+                              entity_id: !input "schedule"
+                        else:
+                          - service: switch.turn_off
+                            target:
+                              entity_id: !input "schedule"
+      - conditions:
+          - condition: trigger
+            id: override_sensor
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ override_action_var != [] }}"
+            then: !input "override_action"
+          - service: switch.turn_off
+            target:
+              entity_id: !input "schedule"
+  - if:
+      - condition: trigger
+        id: override_sensor
+      - condition: state
+        entity_id: !input "override_sensor"
+        state:
+          - "off"
+          - "unknown"
+          - unavailable
+      - condition: state
+        entity_id: !input "schedule"
+        state:
+          - "off"
+          - "unknown"
+          - unavailable
+    then: !input "schedule_off_action"

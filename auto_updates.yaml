@@ -1,0 +1,33 @@
+blueprint:
+  name: Auto Updates
+  description: Provives automatic updates
+  domain: automation
+  input:
+    update_entities:
+      name: Update Entities
+      description: The update entities to automte updates for.
+      selector:
+        entity:
+          filter:
+            domain: update
+          multiple: true
+mode: single
+max_exceeded: silent
+trigger:
+  - platform: homeassistant
+    event: start
+  - platform: state
+    entity_id: !input "update_entities"
+    to: "on"
+condition: []
+action:
+  - repeat:
+      for_each: !input "update_entities"
+      sequence:
+        - if:
+            - condition: template
+              value_template: "{{ states(repeat.item) == 'on' }}"
+          then:
+            - service: update.install
+              target:
+                entity_id: "{{ repeat.item }}"

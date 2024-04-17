@@ -1,0 +1,96 @@
+blueprint:
+  name: Air Conditioner Sync
+  description: Syncronises a custom thermostat which combines the heat and cool HVAC modes of an air conditioner with a single heat/cool HVAC mode.
+  domain: automation
+  input:
+    air_conditioner:
+      name: Air Conditioner
+      description: The air conditioner.
+      selector:
+        entity:
+          filter:
+            domain: climate
+    custom_thermostat:
+      name: Custom Thermostat
+      description: The custom thermostat which will control the air condition.
+      selector:
+        entity:
+          filter:
+            domain: climate
+    condensers:
+      name: Condensers
+      description: The sensors which show the mode of the condenser. The correct one will be automatically determine the correct one.
+      selector:
+        entity:
+          filter:
+            domain: sensor
+          multiple: true
+variables:
+  custom_thermostat_var: !input "custom_thermostat"
+mode: restart
+max_exceeded: silent
+trigger:
+  - platform: state
+    entity_id: !input "custom_thermostat"
+    id: custom_thermostat
+  - platform: state
+    entity_id: !input "condensers"
+    id: condensers
+condition: []
+action:
+  - repeat:
+      for_each: !input "condensers"
+      sequence:
+        - if:
+            - condition: template
+              value_template: >
+                {% for air_conditioner in state_attr(repeat.item, 'air_conditioners') %}
+                  {% if air_conditioner.thermostat == custom_thermostat_var %}
+                    true
+                    {% break %}
+                  {% endif %}
+                {% endfor %}
+          then:
+            - variables:
+                air_conditioner_var: >
+                  {% for air_conditioner in state_attr(repeat.item, 'air_conditioners') %}
+                    {% if air_conditioner.thermostat == custom_thermostat_var %}
+                      {{ air_conditioner }}
+                      {% break %}
+                    {% endif %}
+                  {% endfor %}
+                requested_mode_var: >
+                  {% if states(air_conditioner_var.heater) == 'on' %}
+                    Heat
+                  {% elif states(air_conditioner_var.cooler) == 'on' %}
+                    Cool
+                  {% else %}
+                    Off
+                  {% endif %}
+                temperature_attribute_var: >
+                  {% if states(air_conditioner_var.thermostat) == 'heat_cool' %}
+                    {% if states(repeat.item) | slugify == 'cool' %}
+                      target_temp_high
+                    {% else %}
+                      target_temp_low
+                    {% endif %}
+                  {% else %}
+                    temperature
+                  {% endif %}
+            - if:
+                - condition: state
+                  entity_id: !input "custom_thermostat"
+                  state: "off"
+              then:
+                - service: climate.set_hvac_mode
+                  data:
+                    hvac_mode: "off"
+                  target:
+                    entity_id: !input "air_conditioner"
+              else:
+                - service: climate.set_temperature
+                  data:
+                    temperature: "{{ state_attr(custom_thermostat_var, temperature_attribute_var) }}"
+                    hvac_mode: "{{ requested_mode_var | slugify if requested_mode_var == states(repeat.item) else 'off' }}"
+                  target:
+                    entity_id: !input "air_conditioner"
