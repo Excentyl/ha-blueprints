@@ -34,8 +34,6 @@ variables:
 mode: single
 max_exceeded: silent
 trigger:
-  - platform: homeassistant
-    event: start
   - platform: time
     at: !input update_time
 condition: []
