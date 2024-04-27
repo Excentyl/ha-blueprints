@@ -5,28 +5,47 @@ blueprint:
   input:
     update_entities:
       name: Update Entities
-      description: The update entities to automte updates for.
+      description: The update entities to automte updates for
       selector:
         entity:
           filter:
-            domain: update
+            - domain:
+                - update
           multiple: true
+    update_time:
+      name: Update Time
+      description: The time at which updates will be completed
+      default: "02:00:00"
+      selector:
+        time:
+    update_delay:
+      name: Update Delay
+      description: The minumum amount of time in hours before an update will be completed
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 168
+          mode: slider
+          step: 1
+          unit_of_measurement: h
+variables:
+  update_delay_var: !input update_delay
 mode: single
 max_exceeded: silent
 trigger:
   - platform: homeassistant
     event: start
-  - platform: state
-    entity_id: !input "update_entities"
-    to: "on"
+  - platform: time
+    at: !input update_time
 condition: []
 action:
   - repeat:
-      for_each: !input "update_entities"
+      for_each: !input update_entities
       sequence:
         - if:
             - condition: template
-              value_template: "{{ states(repeat.item) == 'on' }}"
+              value_template: '{{ states(repeat.item) == "on" and (as_timestamp(now()) - as_timestamp(states[repeat.item].last_updated)) / 3600 > update_delay_var }}'
           then:
             - service: update.install
               target:
