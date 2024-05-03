@@ -33,7 +33,7 @@ trigger:
   - platform: state
     entity_id: !input "custom_thermostat"
     for:
-      seconds: 1
+      milliseconds: 50
     id: custom_thermostat
   - platform: state
     entity_id: !input "condensers"
