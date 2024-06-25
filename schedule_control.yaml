@@ -114,7 +114,7 @@ variables:
   unoccupied_time_limit_var: !input "unoccupied_time_limit"
   nominal_change_history_var: !input "nominal_change_history"
   override_action_var: !input "override_action"
-mode: restart
+mode: queued
 max_exceeded: silent
 trigger:
   - platform: state
