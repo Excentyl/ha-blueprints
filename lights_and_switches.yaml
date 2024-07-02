@@ -38,9 +38,9 @@ blueprint:
           filter:
             domain: light
           multiple: true
-    generic_devices:
-      name: Generic Devices
-      description: These are the generic devices that will be controlled. This will work with any entity which can be turned on and off.
+    switches:
+      name: Switches
+      description: These are the switches that will be controlled. This will work with any entity which can be turned on and off.
       default: []
       selector:
         entity:
@@ -80,26 +80,26 @@ blueprint:
           step: 1
           unit_of_measurement: s
     auto_on_occupancy:
-      name: Automatically Turn Lights On from Occupancy
-      description: This controls if the lights are automatically turned on when occupancy starts.
+      name: Automatically Turn On from Occupancy
+      description: This controls if the are automatically turned on when occupancy starts.
       default: true
       selector:
         boolean: {}
     auto_on_light:
-      name: Automatically Turn Lights On when Getting Light
-      description: This controls if the lights are automatically turned on when it is getting light.
+      name: Automatically Turn On when Getting Light
+      description: This controls if the are automatically turned on when it is getting light.
       default: false
       selector:
         boolean: {}
     auto_on_dark:
-      name: Automatically Turn Lights On when Getting Dark
-      description: This controls if the lights are automatically turned on when it is getting dark.
+      name: Automatically Turn On when Getting Dark
+      description: This controls if the are automatically turned on when it is getting dark.
       default: true
       selector:
         boolean: {}
     auto_off:
-      name: Automatically Turn Lights Off
-      description: This controls if the lights are automatically turned off.
+      name: Automatically Turn Off
+      description: This controls if the are automatically turned off.
       default: true
       selector:
         boolean: {}
@@ -107,7 +107,7 @@ variables:
   thresholds_var: !input "thresholds"
   white_lights_var: !input "white_lights"
   colour_lights_var: !input "colour_lights"
-  generic_devices_var: !input "generic_devices"
+  switches_var: !input "switches"
   colour_temperature_var: !input "colour_temperature"
   grace_period_var: !input "grace_period"
   auto_on_occupancy_var: !input "auto_on_occupancy"
@@ -146,11 +146,11 @@ action:
         then:
           - if:
               - condition: template
-                value_template: '{{ expand(white_lights_var, colour_lights_var, generic_devices_var) | map(attribute="entity_id") | list != [] }}'
+                value_template: '{{ expand(white_lights_var, colour_lights_var, switches_var) | map(attribute="entity_id") | list != [] }}'
             then:
               - service: homeassistant.turn_off
                 target:
-                  entity_id: '{{ expand(white_lights_var, colour_lights_var, generic_devices_var) | map(attribute="entity_id") | list }}'
+                  entity_id: '{{ expand(white_lights_var, colour_lights_var, switches_var) | map(attribute="entity_id") | list }}'
     else:
       - if:
           - condition: trigger
@@ -177,11 +177,11 @@ action:
         then:
           - if:
               - condition: template
-                value_template: '{{ expand(white_lights_var, colour_lights_var, generic_devices_var) | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id") | list != [] }}'
+                value_template: '{{ expand(white_lights_var, colour_lights_var, switches_var) | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id") | list != [] }}'
             then:
               - service: homeassistant.turn_on
                 target:
-                  entity_id: '{{ expand(white_lights_var, colour_lights_var, generic_devices_var) | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id") | list }}'
+                  entity_id: '{{ expand(white_lights_var, colour_lights_var, switches_var) | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id") | list }}'
         else:
           - if:
               - condition: or
@@ -241,8 +241,8 @@ action:
                           brightness_pct: !input "brightness"
                   - if:
                       - condition: template
-                        value_template: "{{ generic_devices_var != [] }}"
+                        value_template: "{{ switches_var != [] }}"
                     then:
                       - service: homeassistant.turn_on
                         target:
-                          entity_id: !input "generic_devices"
+                          entity_id: !input "switches"
