@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights
+  name: Lights and Switches
   description: Controls lights based off an occupancy boolean.
   domain: automation
   input:
