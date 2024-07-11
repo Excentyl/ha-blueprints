@@ -29,6 +29,14 @@ blueprint:
       default: 02:00:00
       selector:
         time: {}
+    restart_after_updating:
+      name: Restart After Updating (Given Time)
+      description: Restart Home Assistant after updating entities at the time given
+      default: False
+      selector:
+        boolean:
+variables:
+  restart_after_updating_var: !input "restart_after_updating"
 mode: single
 max_exceeded: silent
 trigger:
@@ -41,25 +49,38 @@ trigger:
 condition: []
 action:
   - choose:
-    - conditions:
-      - condition: trigger
-        id: update_entities_immediate
-      sequence:
-      - repeat:
-          for_each: !input update_entities_immediate
-          sequence:
-            - service: update.install
-              continue_on_error: true
-              target:
-                entity_id: "{{ repeat.item }}"
-    - conditions:
-      - condition: trigger
-        id: update_time
-      sequence:
-      - repeat:
-          for_each: !input update_entities_given_time
-          sequence:
-            - service: update.install
-              continue_on_error: true
-              target:
-                entity_id: "{{ repeat.item }}"
+      - conditions:
+          - condition: trigger
+            id: update_entities_immediate
+        sequence:
+          - repeat:
+              for_each: !input update_entities_immediate
+              sequence:
+                - service: update.install
+                  continue_on_error: true
+                  target:
+                    entity_id: "{{ repeat.item }}"
+      - conditions:
+          - condition: trigger
+            id: update_time
+        sequence:
+          - variables:
+              restart_required: False
+          - repeat:
+              for_each: !input update_entities_given_time
+              sequence:
+                - if:
+                    - condition: template
+                      value_template: '{{ states(repeat.item) == "on" }}'
+                  then:
+                    - variables:
+                        restart_required: True
+                    - service: update.install
+                      continue_on_error: true
+                      target:
+                        entity_id: "{{ repeat.item }}"
+          - if:
+              - condition: template
+                value_template: "{{ restart_after_updating_var and restart_required }}"
+            then:
+              - service: homeassistant.restart
