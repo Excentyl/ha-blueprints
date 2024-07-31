@@ -1,0 +1,52 @@
+blueprint:
+  name: Watchman Report Notification
+  description: Creates a persistent notificaion if any issues are detected in a watchman report.
+  domain: automation
+  input:
+    watchman_missing_entities:
+      name: Watchman Missing Entities
+      description: The missing entities entity provided by Watchman.
+      selector:
+        entity:
+          filter:
+            - integration: watchman
+    watchman_missing_services:
+      name: Watchman Missing Services
+      description: The missing services entity provided by Watchman.
+      selector:
+        entity:
+          filter:
+            - integration: watchman
+mode: queued
+max: 10
+trigger:
+  - platform: homeassistant
+    event: start
+  - platform: state
+    entity_id: !input watchman_missing_entities
+  - platform: state
+    entity_id: !input watchman_missing_services
+condition: []
+action:
+  - if:
+      - condition: or
+        conditions:
+          - condition: numeric_state
+            entity_id: !input watchman_missing_entities
+            above: 0
+          - condition: numeric_state
+            entity_id: !input watchman_missing_services
+            above: 0
+    then:
+      - service: watchman.report
+        metadata: {}
+        data:
+          create_file: false
+          send_notification: true
+          parse_config: false
+          chunk_size: false
+    else:
+      - service: persistent_notification.dismiss
+        metadata: {}
+        data:
+          notification_id: watchman_report
