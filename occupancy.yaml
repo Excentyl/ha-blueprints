@@ -62,7 +62,7 @@ blueprint:
     maximum_duration_seconds:
       name: Maximum Occupancy Timer Duration
       description: This is the maximum delay in seconds after the sensors turn off before the area is set to unoccupied.
-      default: 60
+      default: 300
       selector:
         number:
           min: 0
