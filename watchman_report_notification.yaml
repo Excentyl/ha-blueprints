@@ -1,6 +1,8 @@
 blueprint:
   name: Watchman Report Notification
-  description: Creates a persistent notificaion if any issues are detected in a watchman report.
+  description:
+    Creates a persistent notificaion if any issues are detected in a watchman
+    report.
   domain: automation
   input:
     watchman_missing_entities:
@@ -10,6 +12,7 @@ blueprint:
         entity:
           filter:
             - integration: watchman
+          multiple: false
     watchman_missing_services:
       name: Watchman Missing Services
       description: The missing services entity provided by Watchman.
@@ -17,6 +20,7 @@ blueprint:
         entity:
           filter:
             - integration: watchman
+          multiple: false
 mode: queued
 max: 10
 trigger:
@@ -38,7 +42,7 @@ action:
             entity_id: !input watchman_missing_services
             above: 0
     then:
-      - service: watchman.report
+      - action: watchman.report
         metadata: {}
         data:
           create_file: false
@@ -46,7 +50,7 @@ action:
           parse_config: false
           chunk_size: false
     else:
-      - service: persistent_notification.dismiss
+      - action: persistent_notification.dismiss
         metadata: {}
         data:
           notification_id: watchman_report

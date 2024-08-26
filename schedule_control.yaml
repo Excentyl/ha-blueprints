@@ -15,14 +15,18 @@ blueprint:
           multiple: false
     controling_entities:
       name: Controling Entities
-      description: If enabled, the schedule will be turned on or off when these entities are turned on or off.
+      description:
+        If enabled, the schedule will be turned on or off when these entities
+        are turned on or off.
       default: []
       selector:
         entity:
           multiple: true
     enable_schedule_sensors:
       name: Enable Schedule Sensors
-      description: If populated, the schedule will only be enabled when one of these sensors are turned on.
+      description:
+        If populated, the schedule will only be enabled when one of these
+        sensors are turned on.
       default: []
       selector:
         entity:
@@ -42,7 +46,9 @@ blueprint:
           multiple: false
     schedule_ignores_occupancy_sensors:
       name: Schedule Ignores Occupancy Sensors
-      description: These optional binary sensors determine when the schedule is always on regardless of occupancy (but only if the schedule is enabled)
+      description:
+        These optional binary sensors determine when the schedule is always
+        on regardless of occupancy (but only if the schedule is enabled)
       default: []
       selector:
         entity:
@@ -52,7 +58,9 @@ blueprint:
           multiple: true
     unoccupied_time_limit:
       name: Unoccupied Time Limit
-      description: The amount of time that a room must be unoccupied for in hours before the schedule is no longer turned on.
+      description:
+        The amount of time that a room must be unoccupied for in hours
+        before the schedule is no longer turned on.
       default: 24
       selector:
         number:
@@ -63,7 +71,9 @@ blueprint:
           mode: slider
     nominal_change_history:
       name: Nominal Change History
-      description: The optional nominal change history entity, which ensures that home assistant restarts do not reset the unoccupied time limit.
+      description:
+        The optional nominal change history entity, which ensures that
+        home assistant restarts do not reset the unoccupied time limit.
       default: []
       selector:
         entity:
@@ -73,7 +83,9 @@ blueprint:
           multiple: false
     schedule_off_action:
       name: Schedule Off Action
-      description: This is the optional action which will run when the schedule is turned off.
+      description:
+        This is the optional action which will run when the schedule is
+        turned off.
       default: []
       selector:
         action: {}
@@ -126,7 +138,7 @@ action:
                 entity_id: !input controling_entities
                 state: "off"
             then:
-              - service: switch.turn_off
+              - action: switch.turn_off
                 target:
                   entity_id: !input schedule
       - conditions:
@@ -140,7 +152,7 @@ action:
                     entity_id: !input controling_entities
                     state: "off"
             then:
-              - service: switch.turn_on
+              - action: switch.turn_on
                 target:
                   entity_id: !input schedule
     default:
@@ -179,16 +191,16 @@ action:
                           - condition: template
                             value_template:
                               "{{ area_occupancy_var != [] and nominal_change_history_var
-                              != [] and state_attr(nominal_change_history_var, 'changes') !=
-                              None and area_occupancy_var in state_attr(nominal_change_history_var,
-                              'changes') and now() | as_timestamp - state_attr(nominal_change_history_var,
+                              != [] and state_attr(nominal_change_history_var, 'changes') != None
+                              and area_occupancy_var in state_attr(nominal_change_history_var, 'changes')
+                              and now() | as_timestamp - state_attr(nominal_change_history_var,
                               'changes')[area_occupancy_var] | as_timestamp > unoccupied_time_limit_var
                               * 3600 }}"
                           - condition: template
                             value_template:
                               "{{ area_occupancy_var != [] and not(nominal_change_history_var
-                              != [] and\n    state_attr(nominal_change_history_var, 'changes')
-                              != None and\n    area_occupancy_var in state_attr(nominal_change_history_var,
+                              != [] and\n    state_attr(nominal_change_history_var, 'changes') !=
+                              None and\n    area_occupancy_var in state_attr(nominal_change_history_var,
                               'changes')) and\nnow() | as_timestamp - states[area_occupancy_var].last_changed
                               | as_timestamp > unoccupied_time_limit_var * 3600 }}"
                 then:
@@ -199,15 +211,15 @@ action:
                         entity_id: !input area_occupancy
                         state: "on"
                     then:
-                      - service: switch.turn_on
+                      - action: switch.turn_on
                         target:
                           entity_id: !input schedule
                     else:
-                      - service: switch.turn_off
+                      - action: switch.turn_off
                         target:
                           entity_id: !input schedule
                 else:
-                  - service: switch.turn_on
+                  - action: switch.turn_on
                     target:
                       entity_id: !input schedule
             else:
@@ -218,7 +230,7 @@ action:
                     entity_id: !input enable_schedule_sensors
                     state: "off"
                 then:
-                  - service: switch.turn_off
+                  - action: switch.turn_off
                     target:
                       entity_id: !input schedule
                 else:
@@ -229,10 +241,10 @@ action:
                         entity_id: !input area_occupancy
                         state: "on"
                     then:
-                      - service: switch.turn_on
+                      - action: switch.turn_on
                         target:
                           entity_id: !input schedule
                     else:
-                      - service: switch.turn_off
+                      - action: switch.turn_off
                         target:
                           entity_id: !input schedule

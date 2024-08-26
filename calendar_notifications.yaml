@@ -63,7 +63,7 @@ action:
           - repeat:
               for_each: !input notify_devices
               sequence:
-                - service:
+                - action:
                     "{{ 'notify.mobile_app_' + device_attr(repeat.item, 'name')
                     | slugify }}"
                   data:
@@ -93,7 +93,7 @@ action:
                   - repeat:
                       for_each: !input notify_devices
                       sequence:
-                        - service:
+                        - action:
                             "{{ 'notify.mobile_app_' + device_attr(repeat.item, 'name')
                             | slugify }}"
                           data:
