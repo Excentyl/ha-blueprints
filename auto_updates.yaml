@@ -45,41 +45,38 @@ variables:
 mode: single
 max_exceeded: silent
 trigger:
-  - platform: state
-    entity_id: !input update_entities_immediate
-    id: update_entities_immediate
   - platform: time
     at: !input update_time
     id: update_time
 condition: []
 action:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: update_entities_immediate
-        sequence:
-          - repeat:
-              for_each: !input update_entities_immediate
-              sequence:
-                - action: update.install
-                  continue_on_error: true
-                  target:
-                    entity_id: "{{ repeat.item }}"
-      - conditions:
-          - condition: trigger
-            id: update_time
-        sequence:
-          - variables:
-              updates_required: "{{ update_entities_given_time_var | select('is_state', 'on' | list) }}"
-          - repeat:
-              for_each: "{{ update_entities_given_time_var }}"
-              sequence:
-                - action: update.install
-                  continue_on_error: true
-                  target:
-                    entity_id: "{{ repeat.item }}"
-          - if:
-              - condition: template
-                value_template: "{{ restart_after_updating_var and (updates_required | select('is_state', 'off') | list | count > 0) }}"
-            then:
-              - action: homeassistant.restart
+  - if:
+      - condition: trigger
+        id: update_time
+    then:
+      - variables:
+          updates_required:
+            "{{ update_entities_given_time_var | select('is_state',
+            'on' | list) }}"
+      - repeat:
+          for_each: "{{ update_entities_given_time_var }}"
+          sequence:
+            - action: update.install
+              continue_on_error: true
+              target:
+                entity_id: "{{ repeat.item }}"
+      - if:
+          - condition: template
+            value_template:
+              "{{ restart_after_updating_var and (updates_required | select('is_state',
+              'off') | list | count > 0) }}"
+        then:
+          - action: homeassistant.restart
+    else:
+      - repeat:
+          for_each: !input update_entities_immediate
+          sequence:
+            - action: update.install
+              continue_on_error: true
+              target:
+                entity_id: "{{ repeat.item }}"
