@@ -40,26 +40,34 @@ blueprint:
       selector:
         boolean: {}
 variables:
+  update_entities_immediate_var: !input update_entities_immediate
   update_entities_given_time_var: !input update_entities_given_time
   restart_after_updating_var: !input restart_after_updating
 mode: single
 max_exceeded: silent
 trigger:
+  - platform: state
+    entity_id: !input update_entities_immediate
   - platform: time
     at: !input update_time
     id: update_time
 condition: []
 action:
+  - repeat:
+      for_each: "{{ update_entities_immediate_var | select('is_state', 'on' | list) }}"
+      sequence:
+        - action: update.install
+          continue_on_error: true
+          target:
+            entity_id: "{{ repeat.item }}"
   - if:
       - condition: trigger
         id: update_time
     then:
       - variables:
-          updates_required:
-            "{{ update_entities_given_time_var | select('is_state',
-            'on' | list) }}"
+          updates_required: "{{ update_entities_given_time_var | select('is_state', 'on' | list) }}"
       - repeat:
-          for_each: "{{ update_entities_given_time_var }}"
+          for_each: "{{ updates_required }}"
           sequence:
             - action: update.install
               continue_on_error: true
@@ -67,16 +75,6 @@ action:
                 entity_id: "{{ repeat.item }}"
       - if:
           - condition: template
-            value_template:
-              "{{ restart_after_updating_var and (updates_required | select('is_state',
-              'off') | list | count > 0) }}"
+            value_template: "{{ restart_after_updating_var and (updates_required | select('is_state', 'off') | list | count > 0) }}"
         then:
           - action: homeassistant.restart
-    else:
-      - repeat:
-          for_each: !input update_entities_immediate
-          sequence:
-            - action: update.install
-              continue_on_error: true
-              target:
-                entity_id: "{{ repeat.item }}"
