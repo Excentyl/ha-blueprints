@@ -114,7 +114,7 @@ action:
   - delay:
       hours: 0
       minutes: 0
-      seconds: '{{ max(entry_delay_var + 5 - (as_timestamp(now()) - as_timestamp(states[alarm_control_panel_var].last_updated)),
+      seconds: '{{ max(entry_delay_var + 10 - (as_timestamp(now()) - as_timestamp(states[alarm_control_panel_var].last_updated)),
         0) }}'
       milliseconds: 0
   - if:
@@ -147,7 +147,7 @@ action:
                 value_template: '{{ trigger.from_state.state == ''triggered'' or (trigger.from_state.state
                   == ''pending'' and (as_timestamp(trigger.to_state.last_updated)
                   - as_timestamp(trigger.from_state.last_updated)) < entry_delay_var
-                  + 5) }}'
+                  + 10) }}'
             then: !input disarm_konnected_alarm_action
         - conditions:
           - condition: or
@@ -176,7 +176,7 @@ action:
               state: 'off'
             then: !input arm_konnected_alarm_action
           - delay:
-              seconds: '{{ exit_delay_var + 5 }}'
+              seconds: '{{ exit_delay_var + 10 }}'
           - if:
             - condition: state
               entity_id: !input konnected_alarm_set
