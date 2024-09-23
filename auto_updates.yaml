@@ -48,6 +48,7 @@ max_exceeded: silent
 trigger:
   - platform: state
     entity_id: !input update_entities_immediate
+    to: 'on'
   - platform: time
     at: !input update_time
     id: update_time
