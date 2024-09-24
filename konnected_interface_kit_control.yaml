@@ -71,7 +71,8 @@ blueprint:
           unit_of_measurement: sec
     exit_delay:
       name: Exit Delay
-      description: The exit delay set of the physical alarm.
+      description: The exit delay set of the physical alarm. The exit delay of the alarm
+        control panel entity should be set to be 10 seconds longer than this.
       default: 0
       selector:
         number:
@@ -114,7 +115,7 @@ action:
   - delay:
       hours: 0
       minutes: 0
-      seconds: '{{ max(entry_delay_var + 10 - (as_timestamp(now()) - as_timestamp(states[alarm_control_panel_var].last_updated)),
+      seconds: '{{ max(entry_delay_var + 5 - (as_timestamp(now()) - as_timestamp(states[alarm_control_panel_var].last_updated)),
         0) }}'
       milliseconds: 0
   - if:
