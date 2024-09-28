@@ -87,8 +87,6 @@ variables:
   exit_delay_var: !input exit_delay
 mode: restart
 max_exceeded: silent
-trace:
-  stored_traces: 15
 trigger:
 - platform: state
   entity_id:
