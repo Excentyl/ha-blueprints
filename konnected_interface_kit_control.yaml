@@ -148,7 +148,7 @@ action:
                 value_template: '{{ trigger.from_state.state == ''triggered'' or (trigger.from_state.state
                   == ''pending'' and (as_timestamp(trigger.to_state.last_updated)
                   - as_timestamp(trigger.from_state.last_updated)) < entry_delay_var
-                  + 10) }}'
+                  + 5) }}'
             then: !input disarm_konnected_alarm_action
         - conditions:
           - condition: or
