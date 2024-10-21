@@ -101,7 +101,12 @@ max_exceeded: silent
 trigger:
   - platform: state
     entity_id: !input controlling_entities
-    id: controlling_entities
+    to: "off"
+    id: controlling_entities_off
+  - platform: state
+    entity_id: !input controlling_entities
+    from: "off"
+    id: controlling_entities_on
   - platform: state
     entity_id: !input schedule
     attribute: current_slot
@@ -130,20 +135,18 @@ action:
   - choose:
       - conditions:
           - condition: trigger
-            id: controlling_entities
+            id: controlling_entities_off
         sequence:
-          - if:
-              - condition: state
-                entity_id: !input controlling_entities
-                state: "off"
-            then:
-              - action: switch.turn_off
-                target:
-                  entity_id: !input schedule
-            else:
-              - action: switch.turn_on
-                target:
-                  entity_id: !input schedule
+          - action: switch.turn_off
+            target:
+              entity_id: !input schedule
+      - conditions:
+          - condition: trigger
+            id: controlling_entities_on
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: !input schedule
       - conditions:
           - condition: trigger
             id: schedule_current_slot
