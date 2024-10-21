@@ -13,8 +13,8 @@ blueprint:
           filter:
             - integration: scheduler
           multiple: false
-    controling_entities:
-      name: Controling Entities
+    controlling_entities:
+      name: Controlling Entities
       description:
         If enabled, the schedule will be turned on or off when these entities
         are turned on or off.
@@ -100,9 +100,9 @@ mode: queued
 max_exceeded: silent
 trigger:
   - platform: state
-    entity_id: !input controling_entities
+    entity_id: !input controlling_entities
     to: "off"
-    id: controling_entities_off
+    id: controlling_entities_off
   - platform: state
     entity_id: !input schedule
     attribute: current_slot
@@ -131,11 +131,11 @@ action:
   - choose:
       - conditions:
           - condition: trigger
-            id: controling_entities_off
+            id: controlling_entities_off
         sequence:
           - if:
               - condition: state
-                entity_id: !input controling_entities
+                entity_id: !input controlling_entities
                 state: "off"
             then:
               - action: switch.turn_off
@@ -149,7 +149,7 @@ action:
               - condition: not
                 conditions:
                   - condition: state
-                    entity_id: !input controling_entities
+                    entity_id: !input controlling_entities
                     state: "off"
             then:
               - action: switch.turn_on
