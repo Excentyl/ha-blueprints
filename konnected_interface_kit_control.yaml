@@ -143,10 +143,10 @@ action:
                 value_template: '{{ trigger.from_state.state == ''arming'' and trigger.from_state.attributes.arm_mode
                   == ''armed_away'' }}'
               - condition: template
-                value_template: '{{ trigger.from_state.state == ''triggered'' or (trigger.from_state.state
+                value_template: '{{ (trigger.from_state.state == ''triggered'' or (trigger.from_state.state
                   == ''pending'' and (as_timestamp(trigger.to_state.last_updated)
                   - as_timestamp(trigger.from_state.last_updated)) < entry_delay_var
-                  + 5) }}'
+                  + 5)) and trigger.from_state.attributes.arm_mode == ''armed_away''}}'
             then: !input disarm_konnected_alarm_action
         - conditions:
           - condition: or
