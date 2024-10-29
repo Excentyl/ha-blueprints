@@ -48,6 +48,8 @@ trigger:
     id: condensers
 condition: []
 action:
+  - delay:
+      milliseconds: 50
   - repeat:
       for_each: !input condensers
       sequence:
