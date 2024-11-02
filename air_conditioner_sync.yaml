@@ -41,7 +41,6 @@ max_exceeded: silent
 trigger:
   - platform: state
     entity_id: !input custom_thermostat
-    not_to: null
     id: custom_thermostat
   - platform: state
     entity_id: !input condensers
