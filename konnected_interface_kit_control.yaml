@@ -71,8 +71,8 @@ blueprint:
           unit_of_measurement: sec
     exit_delay:
       name: Exit Delay
-      description: The exit delay set of the physical alarm. The exit delay of the alarm
-        control panel entity should be set to be 10 seconds longer than this.
+      description: The exit delay set of the physical alarm. The exit delay of the
+        alarm control panel entity should be set to be 10 seconds longer than this.
       default: 0
       selector:
         number:
@@ -81,6 +81,7 @@ blueprint:
           mode: slider
           step: 10.0
           unit_of_measurement: sec
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/konnected_interface_kit_control.yaml
 variables:
   alarm_control_panel_var: !input alarm_control_panel
   entry_delay_var: !input entry_delay
@@ -143,8 +144,8 @@ action:
                 value_template: '{{ trigger.from_state.state == ''arming'' and trigger.from_state.attributes.arm_mode
                   == ''armed_away'' }}'
               - condition: template
-                value_template: '{{ (trigger.from_state.state == ''triggered'' or (trigger.from_state.state
-                  == ''pending'' and (as_timestamp(trigger.to_state.last_updated)
+                value_template: '{{ (trigger.from_state.state == ''triggered'' or
+                  (trigger.from_state.state == ''pending'' and (as_timestamp(trigger.to_state.last_updated)
                   - as_timestamp(trigger.from_state.last_updated)) < entry_delay_var
                   + 5)) and trigger.from_state.attributes.arm_mode == ''armed_away''}}'
             then: !input disarm_konnected_alarm_action

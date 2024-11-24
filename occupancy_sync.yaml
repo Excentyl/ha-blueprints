@@ -1,7 +1,6 @@
 blueprint:
   name: Occupancy Sync
-  description:
-    Synchronises multiple secondary occupancy booleans to one primary occupancy
+  description: Synchronises multiple secondary occupancy booleans to one primary occupancy
     boolean.
   domain: automation
   input:
@@ -11,8 +10,8 @@ blueprint:
       selector:
         entity:
           filter:
-            - domain:
-                - input_boolean
+          - domain:
+            - input_boolean
           multiple: false
     secondary_occupancy:
       name: Secondary Occupancy
@@ -20,59 +19,60 @@ blueprint:
       selector:
         entity:
           filter:
-            - domain:
-                - input_boolean
+          - domain:
+            - input_boolean
           multiple: true
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/occupancy_sync.yaml
 mode: restart
 max_exceeded: silent
 trigger:
-  - platform: state
-    entity_id: !input primary_occupancy
-    id: primary_occupancy
-  - platform: state
-    entity_id: !input secondary_occupancy
-    id: secondary_occupancy
+- platform: state
+  entity_id: !input primary_occupancy
+  id: primary_occupancy
+- platform: state
+  entity_id: !input secondary_occupancy
+  id: secondary_occupancy
 condition: []
 action:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: primary_occupancy
-        sequence:
-          - if:
-              - condition: state
-                entity_id: !input primary_occupancy
-                state: "on"
-            then:
-              - if:
-                  - condition: state
-                    entity_id: !input secondary_occupancy
-                    state: "off"
-                then:
-                  - action: input_boolean.turn_on
-                    data: {}
-                    target:
-                      entity_id: !input secondary_occupancy
-            else:
-              - action: input_boolean.turn_off
-                data: {}
-                target:
-                  entity_id: !input secondary_occupancy
-      - conditions:
-          - condition: trigger
-            id: secondary_occupancy
-        sequence:
-          - if:
-              - condition: state
-                entity_id: !input secondary_occupancy
-                state: "off"
-            then:
-              - action: input_boolean.turn_off
-                data: {}
-                target:
-                  entity_id: !input primary_occupancy
-            else:
-              - action: input_boolean.turn_on
-                data: {}
-                target:
-                  entity_id: !input primary_occupancy
+- choose:
+  - conditions:
+    - condition: trigger
+      id: primary_occupancy
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input primary_occupancy
+        state: 'on'
+      then:
+      - if:
+        - condition: state
+          entity_id: !input secondary_occupancy
+          state: 'off'
+        then:
+        - action: input_boolean.turn_on
+          data: {}
+          target:
+            entity_id: !input secondary_occupancy
+      else:
+      - action: input_boolean.turn_off
+        data: {}
+        target:
+          entity_id: !input secondary_occupancy
+  - conditions:
+    - condition: trigger
+      id: secondary_occupancy
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input secondary_occupancy
+        state: 'off'
+      then:
+      - action: input_boolean.turn_off
+        data: {}
+        target:
+          entity_id: !input primary_occupancy
+      else:
+      - action: input_boolean.turn_on
+        data: {}
+        target:
+          entity_id: !input primary_occupancy

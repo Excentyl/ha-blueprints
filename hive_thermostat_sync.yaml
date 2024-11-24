@@ -9,8 +9,8 @@ blueprint:
       selector:
         entity:
           filter:
-            - domain:
-                - climate
+          - domain:
+            - climate
           multiple: false
     custom_thermostat:
       name: Custom Thermostat
@@ -18,13 +18,12 @@ blueprint:
       selector:
         entity:
           filter:
-            - domain:
-                - climate
+          - domain:
+            - climate
           multiple: false
     frost_protection_temperature:
       name: Frost Protection Temperature
-      description:
-        The temperature that the hive thermostat will be set to when the
+      description: The temperature that the hive thermostat will be set to when the
         thermostat is off.
       default: 7
       selector:
@@ -34,31 +33,32 @@ blueprint:
           step: 1.0
           unit_of_measurement: °C
           mode: slider
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/hive_thermostat_sync.yaml
 variables:
   custom_thermostat_var: !input custom_thermostat
 mode: restart
 max_exceeded: silent
 trigger:
-  - platform: state
-    entity_id: !input custom_thermostat
-    id: custom_thermostat
+- platform: state
+  entity_id: !input custom_thermostat
+  id: custom_thermostat
 condition: []
 action:
-  - if:
-      - condition: state
-        entity_id: !input custom_thermostat
-        state: "off"
-    then:
-      - action: climate.set_temperature
-        data:
-          temperature: !input frost_protection_temperature
-          hvac_mode: heat
-        target:
-          entity_id: !input hive_thermostat
-    else:
-      - action: climate.set_temperature
-        data:
-          temperature: "{{ state_attr(custom_thermostat_var, 'temperature') }}"
-          hvac_mode: heat
-        target:
-          entity_id: !input hive_thermostat
+- if:
+  - condition: state
+    entity_id: !input custom_thermostat
+    state: 'off'
+  then:
+  - action: climate.set_temperature
+    data:
+      temperature: !input frost_protection_temperature
+      hvac_mode: heat
+    target:
+      entity_id: !input hive_thermostat
+  else:
+  - action: climate.set_temperature
+    data:
+      temperature: '{{ state_attr(custom_thermostat_var, ''temperature'') }}'
+      hvac_mode: heat
+    target:
+      entity_id: !input hive_thermostat
