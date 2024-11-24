@@ -112,17 +112,10 @@ trigger:
     attribute: current_slot
     id: schedule_current_slot
   - platform: state
-    entity_id: !input enable_schedule_sensors
-    not_to:
-      - unknown
-      - unavailable
-  - platform: state
-    entity_id: !input schedule_ignores_occupancy_sensors
-    not_to:
-      - unknown
-      - unavailable
-  - platform: state
-    entity_id: !input area_occupancy
+    entity_id:
+      - !input area_occupancy
+      - !input enable_schedule_sensors
+      - !input schedule_ignores_occupancy_sensors
     not_to:
       - unknown
       - unavailable

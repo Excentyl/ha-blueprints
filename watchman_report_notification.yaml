@@ -25,9 +25,9 @@ mode: queued
 max: 10
 trigger:
   - platform: state
-    entity_id: !input watchman_missing_entities
-  - platform: state
-    entity_id: !input watchman_missing_services
+    entity_id:
+      - !input watchman_missing_entities
+      - !input watchman_missing_services
 condition: []
 action:
   - if:

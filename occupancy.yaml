@@ -103,13 +103,13 @@ trigger:
   - platform: homeassistant
     event: start
   - platform: state
-    entity_id: !input sensors
+    entity_id:
+      - !input sensors
+      - !input falling_edge_sensors
   - platform: state
     entity_id: !input rising_edge_sensors
     to: "on"
     id: rising_edge_sensors
-  - platform: state
-    entity_id: !input falling_edge_sensors
 condition: []
 action:
   - if:
