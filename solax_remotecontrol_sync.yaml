@@ -1,0 +1,220 @@
+blueprint:
+  name: Solax Remotecontrol Sync
+  description: Syncs Solax remotecontrol to a power, charge and hold helper
+  domain: automation
+  input:
+    battery_capacity:
+      name: Battery Capacity
+      description: The battery capacity sensor
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    battery_power_charge_input:
+      name: Battery Power Charge Input
+      description: The input which sets the power at which the battery is charging
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_number
+    battery_power_charge_sensor:
+      name: Battery Power Charge Sensor
+      description: The sensor which states the power at which the battery is charging
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    battery_charge_upper_soc:
+      name: Battery Charge Upper SOC
+      description: The highest allowed battery state of charge
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
+    battery_control_time:
+      name: Battery Control Time
+      description: The battery control time
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_number
+    charge_battery:
+      name: Charge Battery
+      description: The button which starts charging the battery
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_button
+    hold_battery:
+      name: Hold Battery
+      description: The button which starts charging the battery
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_button
+    remotecontrol_active_power:
+      name: Remotecontrol Active Power
+      description: The remotecontrol active power entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
+    remotecontrol_autorepeat_duration:
+      name: Remotecontrol Autorepeat Duration
+      description: The remotecontrol autorepeat duration entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
+    remotecontrol_autorepeat_remaining:
+      name: Remotecontrol Autorepeat Remaining
+      description: The remotecontrol autorepeat remaining entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    remotecontrol_power_control:
+      name: Remotecontrol Power Control
+      description: The remotecontrol power control entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - select
+              integration: solax_modbus
+    remotecontrol_trigger:
+      name: Remotecontrol Trigger
+      description: The remotecontrol trigger entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - button
+              integration: solax_modbus
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/solax_remotecontrol_sync.yaml
+variables:
+  battery_capacity_var: !input battery_capacity
+  battery_control_time_var: !input battery_control_time
+  battery_power_charge_input_var: !input battery_power_charge_input
+  battery_charge_upper_soc_var: !input battery_charge_upper_soc
+  remotecontrol_autorepeat_remaining_var: !input remotecontrol_autorepeat_remaining
+mode: single
+max_exceeded: silent
+triggers:
+  - entity_id: !input charge_battery
+    id: charge_battery
+    trigger: state
+  - entity_id: !input hold_battery
+    id: hold_battery
+    trigger: state
+  - trigger: state
+    entity_id: !input battery_capacity
+    id: battery_capacity
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - charge_battery
+        sequence:
+          - if:
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
+                  - condition: not
+                    conditions:
+                      - condition: numeric_state
+                        entity_id: !input battery_power_charge_sensor
+                        above: 0
+            then:
+              - data:
+                  value: "{{ states(battery_power_charge_input_var) }}"
+                target:
+                  entity_id: !input remotecontrol_active_power
+                action: number.set_value
+              - data:
+                  value: "{{ states(battery_control_time_var) }}"
+                target:
+                  entity_id: !input remotecontrol_autorepeat_duration
+                action: number.set_value
+              - data:
+                  option: Enabled Battery Control
+                target:
+                  entity_id: !input remotecontrol_power_control
+                action: select.select_option
+              - data: {}
+                target:
+                  entity_id: !input remotecontrol_trigger
+                action: button.press
+      - conditions:
+          - condition: trigger
+            id:
+              - hold_battery
+        sequence:
+          - data:
+              value: "{{ states(battery_control_time_var) }}"
+            target:
+              entity_id: !input remotecontrol_autorepeat_duration
+            action: number.set_value
+          - data:
+              option: Enabled No Discharge
+            target:
+              entity_id: !input remotecontrol_power_control
+            action: select.select_option
+          - data: {}
+            target:
+              entity_id: !input remotecontrol_trigger
+            action: button.press
+      - conditions:
+          - condition: trigger
+            id:
+              - battery_capacity
+        sequence:
+          - if:
+              - condition: template
+                value_template: >-
+                  {{ states(battery_capacity_var) >= states(battery_charge_upper_soc_var) }}
+              - condition: state
+                entity_id: !input remotecontrol_power_control
+                state: Enabled Battery Control
+              - condition: numeric_state
+                entity_id: !input remotecontrol_autorepeat_remaining
+                above: 0
+              - condition: numeric_state
+                entity_id: !input remotecontrol_active_power
+                above: 0
+            then:
+              - data:
+                  value: >-
+                    {{ states(remotecontrol_autorepeat_remaining_var) }}
+                target:
+                  entity_id: !input remotecontrol_autorepeat_duration
+                action: number.set_value
+              - data:
+                  option: Enabled No Discharge
+                target:
+                  entity_id: !input remotecontrol_power_control
+                action: select.select_option
+              - data: {}
+                target:
+                  entity_id: !input remotecontrol_trigger
+                action: button.press
