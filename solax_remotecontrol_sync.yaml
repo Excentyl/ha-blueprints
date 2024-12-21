@@ -32,6 +32,7 @@ blueprint:
     battery_charge_upper_soc:
       name: Battery Charge Upper SOC
       description: The highest allowed battery state of charge
+      default: []
       selector:
         entity:
           filter:
@@ -139,6 +140,9 @@ actions:
                 conditions:
                   - condition: template
                     value_template: >-
+                      {{ battery_charge_upper_soc_var == [] }}
+                  - condition: template
+                    value_template: >-
                       {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
                   - condition: not
                     conditions:
@@ -190,6 +194,9 @@ actions:
               - battery_capacity
         sequence:
           - if:
+              - condition: template
+                value_template: >-
+                  {{ battery_charge_upper_soc_var != [] }}
               - condition: template
                 value_template: >-
                   {{ states(battery_capacity_var) >= states(battery_charge_upper_soc_var) }}
