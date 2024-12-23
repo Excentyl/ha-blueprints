@@ -14,7 +14,7 @@ blueprint:
               integration: solax_modbus
     battery_power_charge_input:
       name: Battery Power Charge Input
-      description: The input which sets the power at which the battery is charging
+      description: The power at which the battery is charging
       selector:
         entity:
           filter:
@@ -22,7 +22,7 @@ blueprint:
                 - input_number
     battery_power_charge_sensor:
       name: Battery Power Charge Sensor
-      description: The sensor which states the power at which the battery is charging
+      description: The power at which the battery is charging
       selector:
         entity:
           filter:
