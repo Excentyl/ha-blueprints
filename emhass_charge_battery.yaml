@@ -1,0 +1,148 @@
+blueprint:
+  name: EMHASS Charge Battery
+  description: Run EMHASS Optimisation and Charge Battery
+  domain: automation
+  input:
+    battery_capacity:
+      name: Battery Capacity
+      description: The battery capacity sensor
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    battery_power_charge:
+      name: Battery Power Charge
+      description: The power at which the battery is charging
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_number
+    charge_battery:
+      name: Charge Battery
+      description: The button which starts charging the battery
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_button
+    selfuse_discharge_min_soc:
+      name: Selfuse Discharge Min SOC
+      description: The selfuse discharge min SOC sensor
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
+    battery_control_time:
+      name: Battery Control Time
+      description: The battery control time
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_number
+    hold_battery:
+      name: Hold Battery
+      description: The button which starts charging the battery
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_button
+    emhass_p_batt_forecast:
+      name: EMHASS P Batt Forecast
+      description: The EMHASS P batt forecast entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+    emhass_p_grid_forecast:
+      name: EMHASS P Grid Forecast
+      description: The EMHASS P grid forecast entity
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+    publish_emhass_data:
+      name: Publish EMHASS Data Action
+      description: Action which publishises EMHASS Data
+      selector:
+        action:
+    run_emhass_optimisation:
+      name: Run EMHASS Optimisation Action
+      description: Action which runs EMHASS Optimisation
+      selector:
+        action:
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/emhass_charge_battery.yaml
+variables:
+  battery_capacity_var: !input battery_capacity
+  selfuse_discharge_min_soc_var: !input selfuse_discharge_min_soc
+  emhass_p_batt_forecast_var: !input emhass_p_batt_forecast
+  emhass_p_grid_forecast_var: !input emhass_p_grid_forecast
+mode: single
+max_exceeded: silent
+triggers:
+  - trigger: time_pattern
+    minutes: /30
+conditions: []
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ true }}"
+    then: !input run_emhass_optimisation
+  - if:
+      - condition: template
+        value_template: "{{ true }}"
+    then: !input publish_emhass_data
+  - variables:
+      battery_power_charge: |-
+        {% if states(emhass_p_grid_forecast_var) | float > 0 %}
+          {{ -min(0, states(emhass_p_batt_forecast_var) | float | round) }}
+        {% else %}
+          0
+        {% endif %}
+      battery_control_time: >-
+        {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
+      battery_hold: >-
+        {{ states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float and
+        states(emhass_p_grid_forecast_var) | float > 0 and
+        states(emhass_p_batt_forecast_var) | float == 0 }}
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ battery_hold }}"
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: !input battery_control_time
+            data:
+              value: "{{ battery_control_time }}"
+          - action: input_button.press
+            target:
+              entity_id: !input hold_battery
+            data: {}
+      - conditions:
+          - condition: template
+            value_template: "{{ battery_power_charge > 0 }}"
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.solar_battery_control_time
+            data:
+              value: "{{ battery_control_time }}"
+          - action: input_number.set_value
+            metadata: {}
+            data:
+              value: "{{ battery_power_charge }}"
+            target:
+              entity_id: !input battery_power_charge
+          - action: input_button.press
+            target:
+              entity_id: !input charge_battery
+            data: {}
