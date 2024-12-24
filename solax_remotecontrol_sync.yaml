@@ -143,7 +143,7 @@ actions:
                       {{ battery_charge_upper_soc_var == [] }}
                   - condition: template
                     value_template: >-
-                      {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
+                      {{ states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
                   - condition: not
                     conditions:
                       - condition: numeric_state
@@ -199,7 +199,7 @@ actions:
                   {{ battery_charge_upper_soc_var != [] }}
               - condition: template
                 value_template: >-
-                  {{ states(battery_capacity_var) >= states(battery_charge_upper_soc_var) }}
+                  {{ states(battery_capacity_var) | float >= states(battery_charge_upper_soc_var) | float }}
               - condition: state
                 entity_id: !input remotecontrol_power_control
                 state: Enabled Battery Control
