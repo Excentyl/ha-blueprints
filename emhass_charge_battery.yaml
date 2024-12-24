@@ -11,7 +11,6 @@ blueprint:
           filter:
             - domain:
                 - sensor
-              integration: solax_modbus
     battery_power_charge:
       name: Battery Power Charge
       description: The power at which the battery is charging
@@ -28,15 +27,6 @@ blueprint:
           filter:
             - domain:
                 - input_button
-    selfuse_discharge_min_soc:
-      name: Selfuse Discharge Min SOC
-      description: The selfuse discharge min SOC sensor
-      selector:
-        entity:
-          filter:
-            - domain:
-                - number
-              integration: solax_modbus
     battery_control_time:
       name: Battery Control Time
       description: The battery control time
@@ -82,7 +72,6 @@ blueprint:
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/emhass_charge_battery.yaml
 variables:
   battery_capacity_var: !input battery_capacity
-  selfuse_discharge_min_soc_var: !input selfuse_discharge_min_soc
   emhass_p_batt_forecast_var: !input emhass_p_batt_forecast
   emhass_p_grid_forecast_var: !input emhass_p_grid_forecast
 mode: single
@@ -110,9 +99,7 @@ actions:
       battery_control_time: >-
         {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
       battery_hold: >-
-        {{ states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float and
-        states(emhass_p_grid_forecast_var) | float > 0 and
-        states(emhass_p_batt_forecast_var) | float == 0 }}
+        {{ states(emhass_p_grid_forecast_var) | float > 0 and states(emhass_p_batt_forecast_var) | float == 0 }}
   - choose:
       - conditions:
           - condition: template
