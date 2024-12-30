@@ -31,7 +31,7 @@ blueprint:
               integration: solax_modbus
     battery_charge_upper_soc:
       name: Battery Charge Upper SOC
-      description: The highest allowed battery state of charge
+      description: The highest allowed battery state of charge. Defaults to 95% if not provided
       default: []
       selector:
         entity:
@@ -114,6 +114,7 @@ variables:
   battery_control_time_var: !input battery_control_time
   battery_power_charge_input_var: !input battery_power_charge_input
   battery_charge_upper_soc_var: !input battery_charge_upper_soc
+  default_battery_charge_upper_soc_var: 95
   remotecontrol_autorepeat_remaining_var: !input remotecontrol_autorepeat_remaining
 mode: single
 max_exceeded: silent
@@ -138,12 +139,22 @@ actions:
           - if:
               - condition: or
                 conditions:
-                  - condition: template
-                    value_template: >-
-                      {{ battery_charge_upper_soc_var == [] }}
-                  - condition: template
-                    value_template: >-
-                      {{ states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: >-
+                          {{ battery_charge_upper_soc_var != [] }}
+                      - condition: template
+                        value_template: >-
+                          {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: >-
+                          {{ battery_charge_upper_soc_var == [] }}
+                      - condition: template
+                        value_template: >-
+                          {{ states(battery_capacity_var) < default_battery_charge_upper_soc_var }}
                   - condition: not
                     conditions:
                       - condition: numeric_state
@@ -194,12 +205,24 @@ actions:
               - battery_capacity
         sequence:
           - if:
-              - condition: template
-                value_template: >-
-                  {{ battery_charge_upper_soc_var != [] }}
-              - condition: template
-                value_template: >-
-                  {{ states(battery_capacity_var) | float >= states(battery_charge_upper_soc_var) | float }}
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: >-
+                          {{ battery_charge_upper_soc_var != [] }}
+                      - condition: template
+                        value_template: >-
+                          {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: >-
+                          {{ battery_charge_upper_soc_var == [] }}
+                      - condition: template
+                        value_template: >-
+                          {{ states(battery_capacity_var) < default_battery_charge_upper_soc_var }}
               - condition: state
                 entity_id: !input remotecontrol_power_control
                 state: Enabled Battery Control
