@@ -1,6 +1,6 @@
 blueprint:
   name: Join Octopus Savings Sessions
-  description: Automatically joins Octopus Savings Sessions
+  description: Automatically joins Octopus Savings Sessions.
   domain: automation
   input:
     savings_session_event_entity:
@@ -9,49 +9,53 @@ blueprint:
       selector:
         entity:
           filter:
-          - domain:
-            - event
-            integration: octopus_energy
+            - domain:
+                - event
+              integration: octopus_energy
           multiple: false
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/join_octopus_savings_sessions.yaml
 variables:
   savings_session_event_entity_var: !input savings_session_event_entity
 mode: restart
 trigger:
-- platform: state
-  entity_id: !input savings_session_event_entity
+  - platform: state
+    entity_id: !input savings_session_event_entity
 condition: []
 action:
-- if:
-  - condition: template
-    value_template: '{{ state_attr(savings_session_event_entity_var, ''available_events'')
-      | length > 0 }}'
-  then:
-  - repeat:
-      sequence:
-      - action: notify.notify
-        data:
-          title: Upcoming Saving Session
-          message: "{% for saving_session in state_attr(savings_session_event_entity_var,
-            'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
-            \   {{ 'Running from ' + (saving_session.start | string) + ' until ' +
-            (saving_session.end | string) + ', earn ' + (saving_session.octopoints_per_kwh
-            | string) + ' Octopoints per kWh saved.' }}\n    {% break %}\n  {% endif
-            %}\n{% endfor %}"
-          data:
-            group: Upcoming Saving Session
-            notification_icon: mdi:home-lightning-bolt
-        enabled: true
-      - action: octopus_energy.join_octoplus_saving_session_event
-        data:
-          event_code: "{% for saving_session in state_attr(savings_session_event_entity_var,
-            'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
-            \   {{ saving_session.code }}\n    {% break %}\n  {% endif %}\n{% endfor
-            %}"
-        target:
-          entity_id: !input savings_session_event_entity
-        enabled: true
-      for_each: "{% set ns = namespace(saving_sessions = []) %} {% for saving_session
-        in state_attr(savings_session_event_entity_var, 'available_events') %}\n  {%
-        set ns.saving_sessions = ns.saving_sessions + [saving_session.id] %}\n{% endfor
-        %} {{ ns.saving_sessions }}\n"
+  - if:
+      - condition: template
+        value_template:
+          "{{ state_attr(savings_session_event_entity_var, 'available_events')
+          | length > 0 }}"
+    then:
+      - repeat:
+          sequence:
+            - action: notify.notify
+              data:
+                title: Upcoming Saving Session
+                message:
+                  "{% for saving_session in state_attr(savings_session_event_entity_var,
+                  'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
+                  \   {{ 'Running from ' + (saving_session.start | string) + ' until ' +
+                  (saving_session.end | string) + ', earn ' + (saving_session.octopoints_per_kwh
+                  | string) + ' Octopoints per kWh saved.' }}\n    {% break %}\n  {% endif
+                  %}\n{% endfor %}"
+                data:
+                  group: Upcoming Saving Session
+                  notification_icon: mdi:home-lightning-bolt
+              enabled: true
+            - action: octopus_energy.join_octoplus_saving_session_event
+              data:
+                event_code:
+                  "{% for saving_session in state_attr(savings_session_event_entity_var,
+                  'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
+                  \   {{ saving_session.code }}\n    {% break %}\n  {% endif %}\n{% endfor
+                  %}"
+              target:
+                entity_id: !input savings_session_event_entity
+              enabled: true
+          for_each:
+            "{% set ns = namespace(saving_sessions = []) %} {% for saving_session
+            in state_attr(savings_session_event_entity_var, 'available_events') %}\n  {%
+            set ns.saving_sessions = ns.saving_sessions + [saving_session.id] %}\n{% endfor
+            %} {{ ns.saving_sessions }}\n"

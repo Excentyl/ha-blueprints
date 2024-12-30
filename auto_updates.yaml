@@ -1,13 +1,11 @@
 blueprint:
   name: Auto Updates
-  description: Provides automatic updates
+  description: Provides automatic updates.
   domain: automation
   input:
     update_entities_immediate:
       name: Update Entities (Immediate)
-      description:
-        The update entities to automatically update. These are updated
-        as soon as an update is available.
+      description: The update entities to automatically update. These are updated as soon as an update is available.
       default: []
       selector:
         entity:
@@ -17,9 +15,7 @@ blueprint:
           multiple: true
     update_entities_given_time:
       name: Update Entities (Given Time)
-      description:
-        The update entities to automatically update. These are updated
-        at the update time given below.
+      description: The update entities to automatically update. These are updated at the update time given below.
       default: []
       selector:
         entity:
@@ -29,13 +25,13 @@ blueprint:
           multiple: true
     update_time:
       name: Update Time
-      description: The time at which updates will be completed
+      description: The time at which updates will be completed.
       default: 02:00:00
       selector:
         time: {}
     restart_after_updating:
       name: Restart After Updating (Given Time)
-      description: Restart Home Assistant after updating entities at the time given
+      description: Restart Home Assistant after updating entities at the time given.
       default: false
       selector:
         boolean: {}

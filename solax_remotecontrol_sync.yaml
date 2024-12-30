@@ -1,11 +1,11 @@
 blueprint:
   name: Solax Remotecontrol Sync
-  description: Syncs Solax remotecontrol to a power, charge and hold helper
+  description: Syncs Solax remotecontrol to a power, charge and hold helper.
   domain: automation
   input:
     battery_capacity:
       name: Battery Capacity
-      description: The battery capacity sensor
+      description: The battery capacity sensor.
       selector:
         entity:
           filter:
@@ -14,7 +14,7 @@ blueprint:
               integration: solax_modbus
     battery_power_charge_input:
       name: Battery Power Charge Input
-      description: The power at which the battery is charging
+      description: The power at which the battery is charging.
       selector:
         entity:
           filter:
@@ -22,7 +22,7 @@ blueprint:
                 - input_number
     battery_power_charge_sensor:
       name: Battery Power Charge Sensor
-      description: The power at which the battery is charging
+      description: The power at which the battery is charging.
       selector:
         entity:
           filter:
@@ -31,7 +31,7 @@ blueprint:
               integration: solax_modbus
     battery_charge_upper_soc:
       name: Battery Charge Upper SOC
-      description: The highest allowed battery state of charge. Defaults to 95% if not provided
+      description: The highest allowed battery state of charge. Defaults to 95% if not provided.
       default: []
       selector:
         entity:
@@ -41,7 +41,7 @@ blueprint:
               integration: solax_modbus
     battery_control_time:
       name: Battery Control Time
-      description: The battery control time
+      description: The battery control time.
       selector:
         entity:
           filter:
@@ -49,7 +49,7 @@ blueprint:
                 - input_number
     charge_battery:
       name: Charge Battery
-      description: The button which starts charging the battery
+      description: The button which starts charging the battery.
       selector:
         entity:
           filter:
@@ -57,7 +57,7 @@ blueprint:
                 - input_button
     hold_battery:
       name: Hold Battery
-      description: The button which starts charging the battery
+      description: The button which starts charging the battery.
       selector:
         entity:
           filter:
@@ -65,7 +65,7 @@ blueprint:
                 - input_button
     remotecontrol_active_power:
       name: Remotecontrol Active Power
-      description: The remotecontrol active power entity
+      description: The remotecontrol active power entity.
       selector:
         entity:
           filter:
@@ -74,7 +74,7 @@ blueprint:
               integration: solax_modbus
     remotecontrol_autorepeat_duration:
       name: Remotecontrol Autorepeat Duration
-      description: The remotecontrol autorepeat duration entity
+      description: The remotecontrol autorepeat duration entity.
       selector:
         entity:
           filter:
@@ -83,7 +83,7 @@ blueprint:
               integration: solax_modbus
     remotecontrol_autorepeat_remaining:
       name: Remotecontrol Autorepeat Remaining
-      description: The remotecontrol autorepeat remaining entity
+      description: The remotecontrol autorepeat remaining entity.
       selector:
         entity:
           filter:
@@ -92,7 +92,7 @@ blueprint:
               integration: solax_modbus
     remotecontrol_power_control:
       name: Remotecontrol Power Control
-      description: The remotecontrol power control entity
+      description: The remotecontrol power control entity.
       selector:
         entity:
           filter:
@@ -101,7 +101,7 @@ blueprint:
               integration: solax_modbus
     remotecontrol_trigger:
       name: Remotecontrol Trigger
-      description: The remotecontrol trigger entity
+      description: The remotecontrol trigger entity.
       selector:
         entity:
           filter:

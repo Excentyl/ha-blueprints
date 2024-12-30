@@ -5,24 +5,21 @@ blueprint:
   input:
     occupancy:
       name: Occupancy
-      description: These are the occupancy booleans. If multiple are selected, the
-        lights will turn on if any of the occupanyc booleans are on.
+      description: These are the occupancy booleans. If multiple are selected, the lights will turn on if any of the occupanyc booleans are on.
       selector:
         entity:
           filter:
-          - domain:
-            - input_boolean
+            - domain:
+                - input_boolean
           multiple: true
     thresholds:
       name: Thresholds
-      description: If populated, the lights will only be turned on or off when one
-        of the selected thresholds is on. The lights will be turned off when all of
-        the selected thresholds turn off.
+      description: If populated, the lights will only be turned on or off when one of the selected thresholds is on. The lights will be turned off when all of the selected thresholds turn off.
       default: []
       selector:
         entity:
           filter:
-          - integration: threshold
+            - integration: threshold
           multiple: true
     white_lights:
       name: White Lights
@@ -31,8 +28,8 @@ blueprint:
       selector:
         entity:
           filter:
-          - domain:
-            - light
+            - domain:
+                - light
           multiple: true
     colour_lights:
       name: Coloured Lights
@@ -41,13 +38,12 @@ blueprint:
       selector:
         entity:
           filter:
-          - domain:
-            - light
+            - domain:
+                - light
           multiple: true
     switches:
       name: Switches
-      description: These are the switches that will be controlled. This will work
-        with any entity which can be turned on and off.
+      description: These are the switches that will be controlled. This will work with any entity which can be turned on and off.
       default: []
       selector:
         entity:
@@ -56,9 +52,9 @@ blueprint:
       name: Colour
       description: This is the colour of the coloured lights.
       default:
-      - 255
-      - 169
-      - 87
+        - 255
+        - 169
+        - 87
       selector:
         color_rgb: {}
     colour_temperature:
@@ -78,12 +74,10 @@ blueprint:
           max: 100.0
           mode: slider
           step: 1.0
-          unit_of_measurement: '%'
+          unit_of_measurement: "%"
     grace_period:
       name: Grace Period
-      description: This controls the time in seconds that the grace period will last,
-        where everything will be turned back on if occupancy is detected shortly after
-        ending.
+      description: This controls the time in seconds that the grace period will last, where everything will be turned back on if occupancy is detected shortly after ending.
       default: 60
       selector:
         number:
@@ -94,22 +88,19 @@ blueprint:
           unit_of_measurement: s
     auto_on_occupancy:
       name: Automatically Turn On from Occupancy
-      description: This controls if the are automatically turned on when occupancy
-        starts.
+      description: This controls if the are automatically turned on when occupancy starts.
       default: true
       selector:
         boolean: {}
     auto_on_light:
       name: Automatically Turn On when Getting Light
-      description: This controls if the are automatically turned on when it is getting
-        light.
+      description: This controls if the are automatically turned on when it is getting light.
       default: false
       selector:
         boolean: {}
     auto_on_dark:
       name: Automatically Turn On when Getting Dark
-      description: This controls if the are automatically turned on when it is getting
-        dark.
+      description: This controls if the are automatically turned on when it is getting dark.
       default: true
       selector:
         boolean: {}
@@ -134,134 +125,142 @@ variables:
 mode: restart
 max_exceeded: silent
 trigger:
-- platform: state
-  entity_id: !input occupancy
-  id: occupancy
-- platform: state
-  entity_id: !input thresholds
-  not_to:
-  id: threshold
+  - platform: state
+    entity_id: !input occupancy
+    id: occupancy
+  - platform: state
+    entity_id: !input thresholds
+    not_to:
+    id: threshold
 condition: []
 action:
-- if:
-  - condition: or
-    conditions:
-    - condition: state
-      entity_id: !input occupancy
-      state: 'off'
-    - condition: and
-      conditions:
-      - condition: trigger
-        id: threshold
-      - condition: state
-        entity_id: !input thresholds
-        state: 'off'
-  then:
   - if:
-    - condition: template
-      value_template: '{{ auto_off_var }}'
-    then:
-    - if:
-      - condition: template
-        value_template: '{{ expand(white_lights_var, colour_lights_var, switches_var)
-          | map(attribute="entity_id") | list != [] }}'
-      then:
-      - action: homeassistant.turn_off
-        target:
-          entity_id: '{{ expand(white_lights_var, colour_lights_var, switches_var)
-            | map(attribute="entity_id") | list }}'
-  else:
-  - if:
-    - condition: trigger
-      id: occupancy
-    - condition: template
-      value_template: '{{ auto_off_var }}'
-    - condition: template
-      value_template: '{{ as_timestamp(trigger.to_state.last_changed) - as_timestamp(trigger.from_state.last_changed)
-        < grace_period_var }}'
-    - condition: template
-      value_template: "{% set ns = namespace() %}\n{% if thresholds_var == [] %}\n
-        \ {{ true }}\n{% else %}\n  {% for threshold_var in thresholds_var -%}\n    {%
-        if ns.last_changed is defined %}\n      {% set ns.last_changed = max(ns.last_changed,
-        states[threshold_var].last_changed) %}\n    {% else %}\n      {% set ns.last_changed
-        = states[threshold_var].last_changed %}\n    {% endif %}\n  {% endfor -%}\n
-        \ {{ as_timestamp(trigger.to_state.last_changed) - as_timestamp(ns.last_changed)
-        < grace_period_var }}\n{% endif %}\n"
-    then:
-    - if:
-      - condition: template
-        value_template: '{{ expand(white_lights_var, colour_lights_var, switches_var)
-          | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id")
-          | list != [] }}'
-      then:
-      - action: homeassistant.turn_on
-        target:
-          entity_id: '{{ expand(white_lights_var, colour_lights_var, switches_var)
-            | selectattr("last_changed", ">=", trigger.from_state.last_changed) |
-            map(attribute="entity_id") | list }}'
-    else:
-    - if:
       - condition: or
         conditions:
-        - condition: and
-          conditions:
+          - condition: state
+            entity_id: !input occupancy
+            state: "off"
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: threshold
+              - condition: state
+                entity_id: !input thresholds
+                state: "off"
+    then:
+      - if:
+          - condition: template
+            value_template: "{{ auto_off_var }}"
+        then:
+          - if:
+              - condition: template
+                value_template:
+                  '{{ expand(white_lights_var, colour_lights_var, switches_var)
+                  | map(attribute="entity_id") | list != [] }}'
+            then:
+              - action: homeassistant.turn_off
+                target:
+                  entity_id:
+                    '{{ expand(white_lights_var, colour_lights_var, switches_var)
+                    | map(attribute="entity_id") | list }}'
+    else:
+      - if:
           - condition: trigger
             id: occupancy
           - condition: template
-            value_template: '{{ auto_on_occupancy_var }}'
-        - condition: and
-          conditions:
-          - condition: trigger
-            id: threshold
+            value_template: "{{ auto_off_var }}"
           - condition: template
-            value_template: '{{ auto_on_light_var }}'
+            value_template:
+              "{{ as_timestamp(trigger.to_state.last_changed) - as_timestamp(trigger.from_state.last_changed)
+              < grace_period_var }}"
           - condition: template
-            value_template: '{{ trigger.from_state.attributes.sensor_value < trigger.to_state.attributes.sensor_value
-              }}'
-        - condition: and
-          conditions:
-          - condition: trigger
-            id: threshold
-          - condition: template
-            value_template: '{{ auto_on_dark_var }}'
-          - condition: template
-            value_template: '{{ trigger.from_state.attributes.sensor_value > trigger.to_state.attributes.sensor_value
-              }}'
-      - condition: or
-        conditions:
-        - condition: template
-          value_template: '{{ thresholds_var == [] }}'
-        - condition: not
-          conditions:
-          - condition: state
-            entity_id: !input thresholds
-            state: 'off'
-      then:
-      - parallel:
-        - if:
-          - condition: template
-            value_template: '{{ colour_lights_var != [] }}'
-          then:
-          - action: light.turn_on
-            target:
-              entity_id: !input colour_lights
-            data:
-              rgb_color: !input colour
-              brightness_pct: !input brightness
-        - if:
-          - condition: template
-            value_template: '{{ white_lights_var != [] }}'
-          then:
-          - action: light.turn_on
-            target:
-              entity_id: !input white_lights
-            data:
-              color_temp_kelvin: '{{ 1000000 / colour_temperature_var }}'
-              brightness_pct: !input brightness
-        - if:
-          - condition: template
-            value_template: '{{ switches_var != [] }}'
-          then:
-          - action: homeassistant.turn_on
-            target:
-              entity_id: !input switches
+            value_template:
+              "{% set ns = namespace() %}\n{% if thresholds_var == [] %}\n
+              \ {{ true }}\n{% else %}\n  {% for threshold_var in thresholds_var -%}\n    {%
+              if ns.last_changed is defined %}\n      {% set ns.last_changed = max(ns.last_changed,
+              states[threshold_var].last_changed) %}\n    {% else %}\n      {% set ns.last_changed
+              = states[threshold_var].last_changed %}\n    {% endif %}\n  {% endfor -%}\n
+              \ {{ as_timestamp(trigger.to_state.last_changed) - as_timestamp(ns.last_changed)
+              < grace_period_var }}\n{% endif %}\n"
+        then:
+          - if:
+              - condition: template
+                value_template:
+                  '{{ expand(white_lights_var, colour_lights_var, switches_var)
+                  | selectattr("last_changed", ">=", trigger.from_state.last_changed) | map(attribute="entity_id")
+                  | list != [] }}'
+            then:
+              - action: homeassistant.turn_on
+                target:
+                  entity_id:
+                    '{{ expand(white_lights_var, colour_lights_var, switches_var)
+                    | selectattr("last_changed", ">=", trigger.from_state.last_changed) |
+                    map(attribute="entity_id") | list }}'
+        else:
+          - if:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: trigger
+                        id: occupancy
+                      - condition: template
+                        value_template: "{{ auto_on_occupancy_var }}"
+                  - condition: and
+                    conditions:
+                      - condition: trigger
+                        id: threshold
+                      - condition: template
+                        value_template: "{{ auto_on_light_var }}"
+                      - condition: template
+                        value_template:
+                          "{{ trigger.from_state.attributes.sensor_value < trigger.to_state.attributes.sensor_value
+                          }}"
+                  - condition: and
+                    conditions:
+                      - condition: trigger
+                        id: threshold
+                      - condition: template
+                        value_template: "{{ auto_on_dark_var }}"
+                      - condition: template
+                        value_template:
+                          "{{ trigger.from_state.attributes.sensor_value > trigger.to_state.attributes.sensor_value
+                          }}"
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: "{{ thresholds_var == [] }}"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input thresholds
+                        state: "off"
+            then:
+              - parallel:
+                  - if:
+                      - condition: template
+                        value_template: "{{ colour_lights_var != [] }}"
+                    then:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input colour_lights
+                        data:
+                          rgb_color: !input colour
+                          brightness_pct: !input brightness
+                  - if:
+                      - condition: template
+                        value_template: "{{ white_lights_var != [] }}"
+                    then:
+                      - action: light.turn_on
+                        target:
+                          entity_id: !input white_lights
+                        data:
+                          color_temp_kelvin: "{{ 1000000 / colour_temperature_var }}"
+                          brightness_pct: !input brightness
+                  - if:
+                      - condition: template
+                        value_template: "{{ switches_var != [] }}"
+                    then:
+                      - action: homeassistant.turn_on
+                        target:
+                          entity_id: !input switches

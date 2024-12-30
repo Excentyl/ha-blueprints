@@ -1,6 +1,6 @@
 blueprint:
   name: Calendar Notifications
-  description: Sends notifications for events in a calendar
+  description: Sends notifications for events in a calendar.
   domain: automation
   input:
     calendar_entity:
@@ -9,8 +9,8 @@ blueprint:
       selector:
         entity:
           filter:
-          - domain:
-            - calendar
+            - domain:
+                - calendar
           multiple: false
     notify_devices:
       name: Notification Devices
@@ -18,7 +18,7 @@ blueprint:
       selector:
         device:
           filter:
-          - integration: mobile_app
+            - integration: mobile_app
           multiple: true
     notify_group:
       name: Notification group
@@ -36,7 +36,8 @@ blueprint:
         icon: {}
     notify_offset:
       name: Notification Offset
-      description: This is the amount of time before the calendar event that the notification
+      description:
+        This is the amount of time before the calendar event that the notification.
         will be sent.
       default: 0:0:0
       selector:
@@ -45,58 +46,60 @@ blueprint:
 mode: parallel
 max: 10
 trigger:
-- platform: calendar
-  event: start
-  offset: !input notify_offset
-  entity_id: !input calendar_entity
-  id: calendar
-- platform: event
-  event_type: mobile_app_notification_action
-  event_data:
-    group: !input notify_group
-  id: event
+  - platform: calendar
+    event: start
+    offset: !input notify_offset
+    entity_id: !input calendar_entity
+    id: calendar
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      group: !input notify_group
+    id: event
 condition: []
 action:
-- choose:
-  - conditions:
-      condition: trigger
-      id: calendar
-    sequence:
-    - repeat:
-        for_each: !input notify_devices
+  - choose:
+      - conditions:
+          condition: trigger
+          id: calendar
         sequence:
-        - action: '{{ ''notify.mobile_app_'' + device_attr(repeat.item, ''name'')
-            | slugify }}'
-          data:
-            title: '{{trigger.calendar_event.summary}}'
-            message: '{{trigger.calendar_event.description}}'
-            data:
-              actions:
-              - action: done
-                title: Done
-              group: !input notify_group
-              sticky: true
-              persistent: true
-              tag: '{{ context.id }}'
-              notification_icon: !input notify_icon
-  - conditions:
-      condition: trigger
-      id: event
-    sequence:
-    - if:
-      - condition: template
-        value_template: '{{ trigger.event.data.tag is defined }}'
-      then:
-      - if:
-        - condition: template
-          value_template: '{{ trigger.event.data.action == ''done'' }}'
-        then:
-        - repeat:
-            for_each: !input notify_devices
-            sequence:
-            - action: '{{ ''notify.mobile_app_'' + device_attr(repeat.item, ''name'')
-                | slugify }}'
-              data:
-                message: clear_notification
-                data:
-                  tag: '{{ trigger.event.data.tag }}'
+          - repeat:
+              for_each: !input notify_devices
+              sequence:
+                - action:
+                    "{{ 'notify.mobile_app_' + device_attr(repeat.item, 'name')
+                    | slugify }}"
+                  data:
+                    title: "{{trigger.calendar_event.summary}}"
+                    message: "{{trigger.calendar_event.description}}"
+                    data:
+                      actions:
+                        - action: done
+                          title: Done
+                      group: !input notify_group
+                      sticky: true
+                      persistent: true
+                      tag: "{{ context.id }}"
+                      notification_icon: !input notify_icon
+      - conditions:
+          condition: trigger
+          id: event
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ trigger.event.data.tag is defined }}"
+            then:
+              - if:
+                  - condition: template
+                    value_template: "{{ trigger.event.data.action == 'done' }}"
+                then:
+                  - repeat:
+                      for_each: !input notify_devices
+                      sequence:
+                        - action:
+                            "{{ 'notify.mobile_app_' + device_attr(repeat.item, 'name')
+                            | slugify }}"
+                          data:
+                            message: clear_notification
+                            data:
+                              tag: "{{ trigger.event.data.tag }}"

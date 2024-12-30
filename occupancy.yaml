@@ -1,19 +1,16 @@
 blueprint:
   name: Occupancy
-  description: Controls an occupancy boolean using some sensors. The time which the
-    occupancy boolean will stay on after the sensors turn off is longer depending
-    on how long it has already been on.
+  description: Controls an occupancy boolean using some sensors. The time which the occupancy boolean will stay on after the sensors turn off is longer depending on how long it has already been on.
   domain: automation
   input:
     occupancy:
       name: Occupancy
-      description: This is the occupancy boolean which is set to true when the area
-        is occupied and false otherwise.
+      description: This is the occupancy boolean which is set to true when the area is occupied and false otherwise.
       selector:
         entity:
           filter:
-          - domain:
-            - input_boolean
+            - domain:
+                - input_boolean
           multiple: false
     sensors:
       name: Sensors
@@ -22,36 +19,32 @@ blueprint:
       selector:
         entity:
           filter:
-          - domain:
-            - binary_sensor
+            - domain:
+                - binary_sensor
           multiple: true
     rising_edge_sensors:
       name: Rising Edge Sensors
-      description: These sensors will only register when they are turned on but do
-        not register if they stay on, making them useful for doors which are left
-        open in areas which are unoccupied.
+      description: These sensors will only register when they are turned on but do not register if they stay on, making them useful for doors which are left open in areas which are unoccupied.
       default: []
       selector:
         entity:
           filter:
-          - domain:
-            - binary_sensor
+            - domain:
+                - binary_sensor
           multiple: true
     falling_edge_sensors:
       name: Falling Edge Sensors
-      description: These sensors will not set the area to occupied, but will be used
-        when setting the area to unoccupied.
+      description: These sensors will not set the area to occupied, but will be used when setting the area to unoccupied.
       default: []
       selector:
         entity:
           filter:
-          - domain:
-            - binary_sensor
+            - domain:
+                - binary_sensor
           multiple: true
     drop_falling_edge_timer:
       name: Drop Falling Edge Timer
-      description: Determines how long in minutes after only the falling edge sensors
-        are activate before setting the area to unoccupied. Set to 0 to disable.
+      description: Determines how long in minutes after only the falling edge sensors are activate before setting the area to unoccupied. Set to 0 to disable.
       default: 0
       selector:
         number:
@@ -62,8 +55,7 @@ blueprint:
           unit_of_measurement: m
     minimum_duration_seconds:
       name: Minimum Occupancy Timer Duration
-      description: This is the minimum delay in seconds after the sensors turn off
-        before the area is set to unoccupied.
+      description: This is the minimum delay in seconds after the sensors turn off before the area is set to unoccupied.
       default: 60
       selector:
         number:
@@ -74,8 +66,7 @@ blueprint:
           unit_of_measurement: s
     maximum_duration_seconds:
       name: Maximum Occupancy Timer Duration
-      description: This is the maximum delay in seconds after the sensors turn off
-        before the area is set to unoccupied.
+      description: This is the maximum delay in seconds after the sensors turn off before the area is set to unoccupied.
       default: 300
       selector:
         number:
@@ -94,65 +85,66 @@ variables:
 mode: restart
 max_exceeded: silent
 trigger:
-- platform: homeassistant
-  event: start
-- platform: state
-  entity_id: !input sensors
-- platform: state
-  entity_id: !input rising_edge_sensors
-  to: 'on'
-  id: rising_edge_sensors
-- platform: state
-  entity_id: !input falling_edge_sensors
+  - platform: homeassistant
+    event: start
+  - platform: state
+    entity_id: !input sensors
+  - platform: state
+    entity_id: !input rising_edge_sensors
+    to: "on"
+    id: rising_edge_sensors
+  - platform: state
+    entity_id: !input falling_edge_sensors
 condition: []
 action:
-- if:
-  - condition: trigger
-    id: rising_edge_sensors
-  then:
-  - action: input_boolean.turn_on
-    data: {}
-    target:
-      entity_id: !input occupancy
-- if:
-  - condition: state
-    entity_id: !input sensors
-    state:
-    - 'off'
-    - unknown
-    - unavailable
-  then:
   - if:
-    - condition: or
-      conditions:
-      - condition: template
-        value_template: '{{ falling_edge_sensors_var == [] }}'
-      - condition: state
-        entity_id: !input falling_edge_sensors
-        state:
-        - 'off'
-        - unknown
-        - unavailable
+      - condition: trigger
+        id: rising_edge_sensors
     then:
-    - delay: '{{ min(max(as_timestamp(now()) - as_timestamp(states[occupancy_var].last_changed),
-        minimum_duration_seconds_var), maximum_duration_seconds_var) }}'
-    - action: input_boolean.turn_off
-      data: {}
-      target:
-        entity_id: !input occupancy
-    else:
-    - if:
-      - condition: template
-        value_template: '{{ drop_falling_edge_timer_var != 0 }}'
-      then:
-      - delay:
-          minutes: '{{ drop_falling_edge_timer_var }}'
-      - action: input_boolean.turn_off
+      - action: input_boolean.turn_on
         data: {}
         target:
           entity_id: !input occupancy
-  else:
-  - action: input_boolean.turn_on
-    data: {}
-    target:
-      entity_id: !input occupancy
+  - if:
+      - condition: state
+        entity_id: !input sensors
+        state:
+          - "off"
+          - unknown
+          - unavailable
+    then:
+      - if:
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ falling_edge_sensors_var == [] }}"
+              - condition: state
+                entity_id: !input falling_edge_sensors
+                state:
+                  - "off"
+                  - unknown
+                  - unavailable
+        then:
+          - delay:
+              "{{ min(max(as_timestamp(now()) - as_timestamp(states[occupancy_var].last_changed),
+              minimum_duration_seconds_var), maximum_duration_seconds_var) }}"
+          - action: input_boolean.turn_off
+            data: {}
+            target:
+              entity_id: !input occupancy
+        else:
+          - if:
+              - condition: template
+                value_template: "{{ drop_falling_edge_timer_var != 0 }}"
+            then:
+              - delay:
+                  minutes: "{{ drop_falling_edge_timer_var }}"
+              - action: input_boolean.turn_off
+                data: {}
+                target:
+                  entity_id: !input occupancy
+    else:
+      - action: input_boolean.turn_on
+        data: {}
+        target:
+          entity_id: !input occupancy

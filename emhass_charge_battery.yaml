@@ -1,11 +1,11 @@
 blueprint:
   name: EMHASS Charge Battery
-  description: Run EMHASS Optimisation and Charge Battery
+  description: Run EMHASS Optimisation and Charge Battery.
   domain: automation
   input:
     battery_capacity:
       name: Battery Capacity
-      description: The battery capacity sensor
+      description: The battery capacity sensor.
       selector:
         entity:
           filter:
@@ -13,7 +13,7 @@ blueprint:
                 - sensor
     battery_power_charge:
       name: Battery Power Charge
-      description: The power at which the battery is charging
+      description: The power at which the battery is charging.
       selector:
         entity:
           filter:
@@ -21,7 +21,7 @@ blueprint:
                 - input_number
     charge_battery:
       name: Charge Battery
-      description: The button which starts charging the battery
+      description: The button which starts charging the battery.
       selector:
         entity:
           filter:
@@ -29,7 +29,7 @@ blueprint:
                 - input_button
     battery_control_time:
       name: Battery Control Time
-      description: The battery control time
+      description: The battery control time.
       selector:
         entity:
           filter:
@@ -37,7 +37,7 @@ blueprint:
                 - input_number
     hold_battery:
       name: Hold Battery
-      description: The button which starts charging the battery
+      description: The button which starts charging the battery.
       selector:
         entity:
           filter:
@@ -45,7 +45,7 @@ blueprint:
                 - input_button
     emhass_p_batt_forecast:
       name: EMHASS P Batt Forecast
-      description: The EMHASS P batt forecast entity
+      description: The EMHASS P batt forecast entity.
       selector:
         entity:
           filter:
@@ -53,7 +53,7 @@ blueprint:
                 - sensor
     emhass_p_grid_forecast:
       name: EMHASS P Grid Forecast
-      description: The EMHASS P grid forecast entity
+      description: The EMHASS P grid forecast entity.
       selector:
         entity:
           filter:
@@ -61,12 +61,12 @@ blueprint:
                 - sensor
     publish_emhass_data:
       name: Publish EMHASS Data Action
-      description: Action which publishises EMHASS Data
+      description: Action which publishises EMHASS Data.
       selector:
         action:
     run_emhass_optimisation:
       name: Run EMHASS Optimisation Action
-      description: Action which runs EMHASS Optimisation
+      description: Action which runs EMHASS Optimisation.
       selector:
         action:
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/emhass_charge_battery.yaml
