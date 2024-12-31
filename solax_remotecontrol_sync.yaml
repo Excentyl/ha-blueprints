@@ -148,7 +148,7 @@ actions:
                   - condition: not
                     conditions:
                       - condition: numeric_state
-                        entity_id: !input battery_power_charge_sensor
+                        entity_id: !input battery_power_charge_input
                         above: 0
             then:
               - data:
