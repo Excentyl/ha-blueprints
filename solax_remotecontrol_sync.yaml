@@ -151,44 +151,50 @@ actions:
                         entity_id: !input battery_power_charge_input
                         above: 0
             then:
-              - data:
+              - action: number.set_value
+                data:
                   value: "{{ states(battery_power_charge_input_var) }}"
                 target:
                   entity_id: !input remotecontrol_active_power
-                action: number.set_value
-              - data:
-                  value: "{{ states(battery_control_time_var) }}"
-                target:
-                  entity_id: !input remotecontrol_autorepeat_duration
-                action: number.set_value
-              - data:
+              - action: select.select_option
+                data:
                   option: Enabled Battery Control
                 target:
                   entity_id: !input remotecontrol_power_control
-                action: select.select_option
-              - data: {}
+            else:
+              - action: select.select_option
+                data:
+                  option: Enabled No Discharge
                 target:
-                  entity_id: !input remotecontrol_trigger
-                action: button.press
+                  entity_id: !input remotecontrol_power_control
+          - action: number.set_value
+            data:
+              value: "{{ states(battery_control_time_var) }}"
+            target:
+              entity_id: !input remotecontrol_autorepeat_duration
+          - action: button.press
+            data: {}
+            target:
+              entity_id: !input remotecontrol_trigger
       - conditions:
           - condition: trigger
             id:
               - hold_battery
         sequence:
-          - data:
+          - action: number.set_value
+            data:
               value: "{{ states(battery_control_time_var) }}"
             target:
               entity_id: !input remotecontrol_autorepeat_duration
-            action: number.set_value
-          - data:
+          - action: select.select_option
+            data:
               option: Enabled No Discharge
             target:
               entity_id: !input remotecontrol_power_control
-            action: select.select_option
-          - data: {}
+          - action: button.press
+            data: {}
             target:
               entity_id: !input remotecontrol_trigger
-            action: button.press
       - conditions:
           - condition: trigger
             id:
@@ -213,18 +219,18 @@ actions:
                 entity_id: !input remotecontrol_active_power
                 above: 0
             then:
-              - data:
+              - action: number.set_value
+                data:
                   value: >-
                     {{ states(remotecontrol_autorepeat_remaining_var) }}
                 target:
                   entity_id: !input remotecontrol_autorepeat_duration
-                action: number.set_value
-              - data:
+              - action: select.select_option
+                data:
                   option: Enabled No Discharge
                 target:
                   entity_id: !input remotecontrol_power_control
-                action: select.select_option
-              - data: {}
+              - action: button.press
+                data: {}
                 target:
                   entity_id: !input remotecontrol_trigger
-                action: button.press
