@@ -139,22 +139,12 @@ actions:
           - if:
               - condition: or
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: >-
-                          {{ battery_charge_upper_soc_var != [] }}
-                      - condition: template
-                        value_template: >-
-                          {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: >-
-                          {{ battery_charge_upper_soc_var == [] }}
-                      - condition: template
-                        value_template: >-
-                          {{ states(battery_capacity_var) < default_battery_charge_upper_soc_var }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_charge_upper_soc_var != [] and states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_charge_upper_soc_var == [] and states(battery_capacity_var) < default_battery_charge_upper_soc_var }}
                   - condition: not
                     conditions:
                       - condition: numeric_state
@@ -207,22 +197,12 @@ actions:
           - if:
               - condition: or
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: >-
-                          {{ battery_charge_upper_soc_var != [] }}
-                      - condition: template
-                        value_template: >-
-                          {{ states(battery_capacity_var) < states(battery_charge_upper_soc_var) }}
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: >-
-                          {{ battery_charge_upper_soc_var == [] }}
-                      - condition: template
-                        value_template: >-
-                          {{ states(battery_capacity_var) < default_battery_charge_upper_soc_var }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_charge_upper_soc_var != [] and states(battery_capacity_var) >= states(battery_charge_upper_soc_var) }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_charge_upper_soc_var == [] and states(battery_capacity_var) >= default_battery_charge_upper_soc_var }}
               - condition: state
                 entity_id: !input remotecontrol_power_control
                 state: Enabled Battery Control
