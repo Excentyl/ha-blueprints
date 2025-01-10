@@ -1,0 +1,112 @@
+blueprint:
+  name: Solax Remotecontrol Persistence
+  description: Ensures that Solax Remotecontrol persists through Home Assistant restarts and when the inverter goes idle.
+  domain: automation
+  input:
+    remotecontrol_trigger:
+      name: Remotecontrol Trigger
+      description: The remotecontrol trigger entity.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - button
+              integration: solax_modbus
+    run_mode:
+      name: Run mode
+      description: The run mode of the inverter.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    wake_inverter:
+      name: Wake Inverter
+      description: The action to wake the inverter.
+      selector:
+        action:
+    remotecontrol_autorepeat_duration:
+      name: Remotecontrol Autorepeat Duration
+      description: The remotecontrol autorepeat duration entity.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
+    remotecontrol_autorepeat_remaining:
+      name: Remotecontrol Autorepeat Remaining
+      description: The remotecontrol autorepeat remaining entity.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              integration: solax_modbus
+    remotecontrol_autorepeat_end:
+      name: Remotecontrol Autorepeat End
+      description: The helper which retains the remotecontrol autorpeat end time in case of a Home Assistant restart.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_datetime
+  source_url: https://github.com/Excentyl/ha-blueprints/blob/main/solax_remotecontrol_persistence.yaml
+variables:
+  remotecontrol_autorepeat_duration_var: !input remotecontrol_autorepeat_duration
+  remotecontrol_autorepeat_remaining_var: !input remotecontrol_autorepeat_remaining
+  remotecontrol_autorepeat_end_var: !input remotecontrol_autorepeat_end
+mode: restart
+triggers:
+  - trigger: state
+    entity_id: !input remotecontrol_trigger
+    id: remotecontrol_trigger
+  - trigger: homeassistant
+    event: start
+    id: home_assistant_start
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - remotecontrol_trigger
+        sequence:
+          - if:
+              - condition: state
+                entity_id: !input run_mode
+                state: Idle Mode
+            then: !input wake_inverter
+          - action: input_datetime.set_datetime
+            metadata: {}
+            data:
+              datetime: >-
+                {{ now() + timedelta(seconds=states(remotecontrol_autorepeat_duration_var) | int) }}
+            target:
+              entity_id: !input remotecontrol_autorepeat_end
+      - conditions:
+          - condition: trigger
+            id:
+              - home_assistant_start
+        sequence:
+          - wait_template: >-
+              {{ states(remotecontrol_autorepeat_remaining_var) | int(-1) != -1 }}
+          - variables:
+              duration_remaining: >-
+                {{ as_timestamp(states(remotecontrol_autorepeat_end_var)) - as_timestamp(now()) }}
+          - if:
+              - condition: template
+                value_template: "{{ duration_remaining > 0 }}"
+            then:
+              - action: number.set_value
+                metadata: {}
+                data:
+                  value: "{{ duration_remaining }}"
+                target:
+                  entity_id: !input remotecontrol_autorepeat_duration
+              - action: button.press
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input remotecontrol_trigger
