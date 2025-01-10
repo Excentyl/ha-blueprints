@@ -40,12 +40,11 @@ action:
             above: 0
     then:
       - action: watchman.report
-        metadata: {}
         data:
-          create_file: false
-          send_notification: true
           parse_config: false
+          action: persistent_notification.create
           chunk_size: false
+          create_file: false
     else:
       - action: persistent_notification.dismiss
         metadata: {}
