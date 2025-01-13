@@ -52,6 +52,15 @@ blueprint:
           filter:
             - domain:
                 - input_datetime
+    remotecontrol_power_control:
+      name: Remotecontrol Power Control
+      description: The remotecontrol power control entity.
+      selector:
+        entity:
+          filter:
+            - domain:
+                - select
+              integration: solax_modbus
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/solax_remotecontrol_persistence.yaml
 variables:
   remotecontrol_autorepeat_duration_var: !input remotecontrol_autorepeat_duration
@@ -77,6 +86,11 @@ actions:
               - condition: state
                 entity_id: !input run_mode
                 state: Idle Mode
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: !input remotecontrol_power_control
+                    state: Enabled No Discharge
             then: !input wake_inverter
           - action: input_datetime.set_datetime
             metadata: {}
