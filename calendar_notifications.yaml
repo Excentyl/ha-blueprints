@@ -36,12 +36,22 @@ blueprint:
         icon: {}
     notify_offset:
       name: Notification Offset
-      description:
-        This is the amount of time before the calendar event that the notification.
-        will be sent.
+      description: This is the amount of time after the calendar event that the notification will be sent. Negative values can be used to trigger the notification before the event.
       default: 0:0:0
       selector:
         duration: {}
+    notify_title:
+      name: Notification Title
+      description: This is the notification title.
+      default: "{{ trigger.calendar_event.summary }}"
+      selector:
+        template: {}
+    notify_message:
+      name: Notification Message
+      description: This is the notification message.
+      default: "{{ trigger.calendar_event.description }}"
+      selector:
+        template: {}
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/calendar_notifications.yaml
 mode: parallel
 max: 10
@@ -70,8 +80,8 @@ action:
                     "{{ 'notify.mobile_app_' + device_attr(repeat.item, 'name')
                     | slugify }}"
                   data:
-                    title: "{{trigger.calendar_event.summary}}"
-                    message: "{{trigger.calendar_event.description}}"
+                    title: !input notify_title
+                    message: !input notify_message
                     data:
                       actions:
                         - action: done
