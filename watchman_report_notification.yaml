@@ -19,6 +19,12 @@ blueprint:
           filter:
             - integration: watchman
           multiple: false
+    watchman_notification_id:
+      name: Watchman Notification ID
+      description: The notification ID of the persistent notification
+      default: watchman_report
+      selector:
+        text:
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/watchman_report_notification.yaml
 mode: queued
 max: 10
@@ -43,10 +49,10 @@ action:
         data:
           action: persistent_notification.create
           data:
-            notification_id: watchman_report
+            notification_id: !input watchman_notification_id
           create_file: false
     else:
       - action: persistent_notification.dismiss
         metadata: {}
         data:
-          notification_id: watchman_report
+          notification_id: !input watchman_notification_id
