@@ -41,9 +41,9 @@ action:
     then:
       - action: watchman.report
         data:
-          parse_config: false
           action: persistent_notification.create
-          chunk_size: false
+          data:
+            notification_id: watchman_report
           create_file: false
     else:
       - action: persistent_notification.dismiss
