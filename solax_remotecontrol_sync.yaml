@@ -39,6 +39,16 @@ blueprint:
             - domain:
                 - number
               integration: solax_modbus
+    selfuse_discharge_min_soc:
+      name: Self Use Discharge Min SOC
+      description: The lowest allowed battery state of charge. Defaults to 10% if not provided.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - number
+              integration: solax_modbus
     battery_control_time:
       name: Battery Control Time
       description: The battery control time.
@@ -114,8 +124,10 @@ variables:
   battery_control_time_var: !input battery_control_time
   battery_power_charge_input_var: !input battery_power_charge_input
   battery_charge_upper_soc_var: !input battery_charge_upper_soc
-  default_battery_charge_upper_soc_var: 95
+  selfuse_discharge_min_soc_var: !input selfuse_discharge_min_soc
   remotecontrol_autorepeat_remaining_var: !input remotecontrol_autorepeat_remaining
+  default_battery_charge_upper_soc_var: 95
+  default_selfuse_discharge_min_soc_var: 10
 mode: single
 max_exceeded: silent
 triggers:
@@ -141,15 +153,16 @@ actions:
                 conditions:
                   - condition: template
                     value_template: >-
-                      {{ battery_charge_upper_soc_var != [] and states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
+                      {{ battery_power_charge_input_var > 0 and battery_charge_upper_soc_var != [] and states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
                   - condition: template
                     value_template: >-
-                      {{ battery_charge_upper_soc_var == [] and states(battery_capacity_var) | float < default_battery_charge_upper_soc_var }}
-                  - condition: not
-                    conditions:
-                      - condition: numeric_state
-                        entity_id: !input battery_power_charge_input
-                        above: 0
+                      {{ battery_power_charge_input_var > 0 and battery_charge_upper_soc_var == [] and states(battery_capacity_var) | float < default_battery_charge_upper_soc_var }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_power_charge_input_var <= 0 and selfuse_discharge_min_soc_var != [] and states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float }}
+                  - condition: template
+                    value_template: >-
+                      {{ battery_power_charge_input_var <= 0 and selfuse_discharge_min_soc_var == [] and states(battery_capacity_var) | float > default_selfuse_discharge_min_soc_var }}
             then:
               - action: number.set_value
                 data:
@@ -181,20 +194,30 @@ actions:
             id:
               - hold_battery
         sequence:
-          - action: number.set_value
-            data:
-              value: "{{ states(battery_control_time_var) }}"
-            target:
-              entity_id: !input remotecontrol_autorepeat_duration
-          - action: select.select_option
-            data:
-              option: Enabled No Discharge
-            target:
-              entity_id: !input remotecontrol_power_control
-          - action: button.press
-            data: {}
-            target:
-              entity_id: !input remotecontrol_trigger
+          - if:
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ selfuse_discharge_min_soc_var != [] and states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float }}
+                  - condition: template
+                    value_template: >-
+                      {{ selfuse_discharge_min_soc_var == [] and states(battery_capacity_var) | float > default_selfuse_discharge_min_soc_var }}
+            then:
+              - action: number.set_value
+                data:
+                  value: "{{ states(battery_control_time_var) }}"
+                target:
+                  entity_id: !input remotecontrol_autorepeat_duration
+              - action: select.select_option
+                data:
+                  option: Enabled No Discharge
+                target:
+                  entity_id: !input remotecontrol_power_control
+              - action: button.press
+                data: {}
+                target:
+                  entity_id: !input remotecontrol_trigger
       - conditions:
           - condition: trigger
             id:
