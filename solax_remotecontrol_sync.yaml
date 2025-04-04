@@ -40,7 +40,7 @@ blueprint:
                 - number
               integration: solax_modbus
     selfuse_discharge_min_soc:
-      name: Self Use Discharge Min SOC
+      name: Selfuse Discharge Min SOC
       description: The lowest allowed battery state of charge. Defaults to 10% if not provided.
       default: []
       selector:
