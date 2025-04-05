@@ -153,16 +153,16 @@ actions:
                 conditions:
                   - condition: template
                     value_template: >-
-                      {{ battery_power_charge_input_var > 0 and battery_charge_upper_soc_var != [] and states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
+                      {{ states(battery_power_charge_input_var) | float > 0 and battery_charge_upper_soc_var != [] and states(battery_capacity_var) | float < states(battery_charge_upper_soc_var) | float }}
                   - condition: template
                     value_template: >-
-                      {{ battery_power_charge_input_var > 0 and battery_charge_upper_soc_var == [] and states(battery_capacity_var) | float < default_battery_charge_upper_soc_var }}
+                      {{ states(battery_power_charge_input_var) | float > 0 and battery_charge_upper_soc_var == [] and states(battery_capacity_var) | float < default_battery_charge_upper_soc_var }}
                   - condition: template
                     value_template: >-
-                      {{ battery_power_charge_input_var <= 0 and selfuse_discharge_min_soc_var != [] and states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float }}
+                      {{ states(battery_power_charge_input_var) | float <= 0 and selfuse_discharge_min_soc_var != [] and states(battery_capacity_var) | float > states(selfuse_discharge_min_soc_var) | float }}
                   - condition: template
                     value_template: >-
-                      {{ battery_power_charge_input_var <= 0 and selfuse_discharge_min_soc_var == [] and states(battery_capacity_var) | float > default_selfuse_discharge_min_soc_var }}
+                      {{ states(battery_power_charge_input_var) | float <= 0 and selfuse_discharge_min_soc_var == [] and states(battery_capacity_var) | float > default_selfuse_discharge_min_soc_var }}
             then:
               - action: number.set_value
                 data:
