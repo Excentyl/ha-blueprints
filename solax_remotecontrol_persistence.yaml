@@ -72,7 +72,7 @@ triggers:
   - trigger: state
     entity_id: !input remotecontrol_trigger
     id: remotecontrol_trigger
-    not_to: null
+    not_from: unavailable
   - trigger: homeassistant
     event: start
     id: home_assistant_start
