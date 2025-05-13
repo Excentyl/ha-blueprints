@@ -11,13 +11,13 @@ blueprint:
           filter:
             - integration: scheduler
           multiple: false
-    controlling_entities:
-      name: Controlling Entities
-      description: If enabled, the schedule will be turned on or off when these entities are turned on or off.
+    controlling_entity:
+      name: Controlling Entity
+      description: If enabled, the schedule will be turned on or off when this entity is turned on or off.
       default: []
       selector:
         entity:
-          multiple: true
+          multiple: false
     enable_schedule_sensors:
       name: Enable Schedule Sensors
       description: If populated, the schedule will only be enabled when one of these sensors are turned on.
@@ -27,48 +27,8 @@ blueprint:
           filter:
             - domain:
                 - binary_sensor
-          multiple: true
-    area_occupancy:
-      name: Area Occupancy
-      description: If populated, the area occupancy will turn on and off the schedule.
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
                 - input_boolean
-          multiple: false
-    schedule_ignores_occupancy_sensors:
-      name: Schedule Ignores Occupancy Sensors
-      description: These optional binary sensors determine when the schedule is always on regardless of occupancy (but only if the schedule is enabled).
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
-                - binary_sensor
           multiple: true
-    unoccupied_time_limit:
-      name: Unoccupied Time Limit
-      description: The amount of time that a room must be unoccupied for in hours before the schedule is no longer turned on.
-      default: 24
-      selector:
-        number:
-          min: 0.0
-          max: 168.0
-          step: 1.0
-          unit_of_measurement: h
-          mode: slider
-    nominal_change_history:
-      name: Nominal Change History
-      description: The optional nominal change history entity, which ensures that home assistant restarts do not reset the unoccupied time limit.
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
-                - sensor
-          multiple: false
     schedule_off_action:
       name: Schedule Off Action
       description: This is the optional action which will run when the schedule is turned off.
@@ -77,39 +37,21 @@ blueprint:
         action: {}
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/schedule_control.yaml
 variables:
-  area_occupancy_var: !input area_occupancy
   schedule_off_action_var: !input schedule_off_action
   enable_schedule_sensors_var: !input enable_schedule_sensors
-  schedule_ignores_occupancy_sensors_var: !input schedule_ignores_occupancy_sensors
-  unoccupied_time_limit_var: !input unoccupied_time_limit
-  nominal_change_history_var: !input nominal_change_history
 mode: queued
 max_exceeded: silent
 trigger:
   - platform: state
-    entity_id: !input controlling_entities
+    entity_id: !input controlling_entity
     to: "off"
-    id: controlling_entities_off
+    id: controlling_entity_off
   - platform: state
-    entity_id: !input controlling_entities
+    entity_id: !input controlling_entity
     from: "off"
-    id: controlling_entities_on
-  - platform: state
-    entity_id: !input schedule
-    attribute: current_slot
-    id: schedule_current_slot
+    id: controlling_entity_on
   - platform: state
     entity_id: !input enable_schedule_sensors
-    not_to:
-      - unknown
-      - unavailable
-  - platform: state
-    entity_id: !input schedule_ignores_occupancy_sensors
-    not_to:
-      - unknown
-      - unavailable
-  - platform: state
-    entity_id: !input area_occupancy
     not_to:
       - unknown
       - unavailable
@@ -122,122 +64,41 @@ action:
   - choose:
       - conditions:
           - condition: trigger
-            id: controlling_entities_off
+            id: controlling_entity_off
         sequence:
           - action: switch.turn_off
             target:
               entity_id: !input schedule
       - conditions:
           - condition: trigger
-            id: controlling_entities_on
+            id: controlling_entity_on
         sequence:
           - action: switch.turn_on
             target:
               entity_id: !input schedule
       - conditions:
           - condition: trigger
-            id: schedule_current_slot
-        sequence:
-          - if:
-              - condition: not
-                conditions:
-                  - condition: state
-                    entity_id: !input controlling_entities
-                    state: "off"
-            then:
-              - action: switch.turn_on
-                target:
-                  entity_id: !input schedule
-    default:
-      - if:
-          - condition: trigger
             id: schedule_off
-        then:
+        sequence:
           - if:
               - condition: template
                 value_template: "{{ schedule_off_action_var != [] }}"
             then: !input schedule_off_action
+    default:
+      - if:
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ enable_schedule_sensors_var == [] }}"
+              - condition: state
+                entity_id: !input enable_schedule_sensors
+                state: "on"
+                match: any
+        then:
+          - action: switch.turn_on
+            target:
+              entity_id: !input schedule
         else:
-          - if:
-              - condition: or
-                conditions:
-                  - condition: template
-                    value_template: "{{ enable_schedule_sensors_var == [] }}"
-                  - condition: state
-                    entity_id: !input enable_schedule_sensors
-                    state: "on"
-                    match: any
-            then:
-              - if:
-                  - condition: or
-                    conditions:
-                      - condition: template
-                        value_template: "{{ schedule_ignores_occupancy_sensors_var == [] }}"
-                      - condition: or
-                        conditions:
-                          - condition: state
-                            entity_id: !input schedule_ignores_occupancy_sensors
-                            state:
-                              - "off"
-                              - unknown
-                              - unavailable
-                          - condition: template
-                            value_template:
-                              "{{ area_occupancy_var != [] and nominal_change_history_var
-                              != [] and state_attr(nominal_change_history_var, 'changes') != None
-                              and area_occupancy_var in state_attr(nominal_change_history_var, 'changes')
-                              and now() | as_timestamp - state_attr(nominal_change_history_var,
-                              'changes')[area_occupancy_var] | as_timestamp > unoccupied_time_limit_var
-                              * 3600 }}"
-                          - condition: template
-                            value_template:
-                              "{{ area_occupancy_var != [] and not(nominal_change_history_var
-                              != [] and\n    state_attr(nominal_change_history_var, 'changes') !=
-                              None and\n    area_occupancy_var in state_attr(nominal_change_history_var,
-                              'changes')) and\nnow() | as_timestamp - states[area_occupancy_var].last_changed
-                              | as_timestamp > unoccupied_time_limit_var * 3600 }}"
-                then:
-                  - if:
-                      - condition: template
-                        value_template: "{{ area_occupancy_var != [] }}"
-                      - condition: state
-                        entity_id: !input area_occupancy
-                        state: "on"
-                    then:
-                      - action: switch.turn_on
-                        target:
-                          entity_id: !input schedule
-                    else:
-                      - action: switch.turn_off
-                        target:
-                          entity_id: !input schedule
-                else:
-                  - action: switch.turn_on
-                    target:
-                      entity_id: !input schedule
-            else:
-              - if:
-                  - condition: template
-                    value_template: "{{ enable_schedule_sensors_var != [] }}"
-                  - condition: state
-                    entity_id: !input enable_schedule_sensors
-                    state: "off"
-                then:
-                  - action: switch.turn_off
-                    target:
-                      entity_id: !input schedule
-                else:
-                  - if:
-                      - condition: template
-                        value_template: "{{ area_occupancy_var != [] }}"
-                      - condition: state
-                        entity_id: !input area_occupancy
-                        state: "on"
-                    then:
-                      - action: switch.turn_on
-                        target:
-                          entity_id: !input schedule
-                    else:
-                      - action: switch.turn_off
-                        target:
-                          entity_id: !input schedule
+          - action: switch.turn_off
+            target:
+              entity_id: !input schedule
