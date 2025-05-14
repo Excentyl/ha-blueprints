@@ -59,6 +59,8 @@ trigger:
     entity_id: !input schedule
     to: "off"
     id: schedule_off
+  - trigger: homeassistant
+    event: start
 condition: []
 action:
   - choose:
