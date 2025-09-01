@@ -35,8 +35,16 @@ blueprint:
       default: []
       selector:
         action: {}
+    activate_previous_action_when_no_action_is_set:
+      name: Activate Previous Action When no Action is Set
+      description: When turning on the schedule, activate the previous action if the current time slot has no action set
+      default: false
+      selector:
+        boolean: {}
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/schedule_control.yaml
 variables:
+  activate_previous_action_when_no_action_is_set_var: !input activate_previous_action_when_no_action_is_set
+  schedule_var: !input schedule
   schedule_off_action_var: !input schedule_off_action
   enable_schedule_sensors_var: !input enable_schedule_sensors
 mode: queued
@@ -45,20 +53,28 @@ trigger:
   - platform: state
     entity_id: !input controlling_entity
     to: "off"
+    not_from:
+      - unavailable
+      - unknown
     id: controlling_entity_off
-  - platform: state
-    entity_id: !input controlling_entity
-    from: "off"
-    id: controlling_entity_on
   - platform: state
     entity_id: !input enable_schedule_sensors
     not_to:
-      - unknown
       - unavailable
+      - unknown
   - platform: state
     entity_id: !input schedule
     to: "off"
     id: schedule_off
+  - platform: state
+    entity_id: !input schedule
+    to: "on"
+    id: schedule_on
+  - platform: state
+    entity_id: !input schedule
+    attribute: current_slot
+    not_to: null
+    id: schedule_slot_changed
   - trigger: homeassistant
     event: start
 condition: []
@@ -73,19 +89,39 @@ action:
               entity_id: !input schedule
       - conditions:
           - condition: trigger
-            id: controlling_entity_on
-        sequence:
-          - action: switch.turn_on
-            target:
-              entity_id: !input schedule
-      - conditions:
-          - condition: trigger
             id: schedule_off
         sequence:
           - if:
               - condition: template
                 value_template: "{{ schedule_off_action_var != [] }}"
             then: !input schedule_off_action
+      - conditions:
+          - condition: trigger
+            id: schedule_on
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ activate_previous_action_when_no_action_is_set and state_attr(schedule_var, 'current_slot') is none }}"
+            then:
+              - variables:
+                  schedule_action_var: "{{ state_attr(schedule_var, 'actions')[state_attr(schedule_var, 'next_slot') - 1] }}"
+              - action: "{{ schedule_action_var['service'] }}"
+                data: "{{ schedule_action_var['data'] }}"
+                entity_id: !input controlling_entity
+      - conditions:
+          - condition: trigger
+            id: schedule_slot_changed
+        sequence:
+          - if:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: !input controlling_entity
+                    state: "off"
+            then:
+              - action: switch.turn_on
+                target:
+                  entity_id: !input schedule
     default:
       - if:
           - condition: or
@@ -97,9 +133,14 @@ action:
                 state: "on"
                 match: any
         then:
-          - action: switch.turn_on
-            target:
-              entity_id: !input schedule
+          - if:
+              - condition: state
+                entity_id: !input controlling_entity
+                state: "off"
+            then:
+              - action: switch.turn_on
+                target:
+                  entity_id: !input schedule
         else:
           - action: switch.turn_off
             target:
