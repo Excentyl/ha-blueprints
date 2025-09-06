@@ -101,7 +101,7 @@ action:
         sequence:
           - if:
               - condition: template
-                value_template: "{{ activate_previous_action_when_no_action_is_set and state_attr(schedule_var, 'current_slot') is none }}"
+                value_template: "{{ activate_previous_action_when_no_action_is_set_var and state_attr(schedule_var, 'current_slot') is none }}"
             then:
               - variables:
                   schedule_action_var: "{{ state_attr(schedule_var, 'actions')[state_attr(schedule_var, 'next_slot') - 1] }}"
