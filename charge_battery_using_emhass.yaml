@@ -72,6 +72,7 @@ blueprint:
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/charge_battery_using_emhass.yaml
 variables:
   battery_capacity_var: !input battery_capacity
+  battery_power_charge_var: !input battery_power_charge
   emhass_p_batt_forecast_var: !input emhass_p_batt_forecast
   emhass_p_grid_forecast_var: !input emhass_p_grid_forecast
 mode: single
@@ -90,16 +91,12 @@ actions:
         value_template: "{{ true }}"
     then: !input publish_emhass_data
   - variables:
-      battery_power_charge: |-
-        {% if states(emhass_p_grid_forecast_var) | float > 0 %}
-          {{ -min(0, states(emhass_p_batt_forecast_var) | float | round) }}
-        {% else %}
-          0
-        {% endif %}
-      battery_control_time: >-
-        {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
+      battery_forecast_charge: >-
+        {{ -min(states(emhass_p_batt_forecast_var) | float, 0) }}
       battery_hold: >-
         {{ states(emhass_p_grid_forecast_var) | float > 0 and states(emhass_p_batt_forecast_var) | float == 0 }}
+      time_until_next_slot: >-
+        {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
   - choose:
       - conditions:
           - condition: template
@@ -109,15 +106,20 @@ actions:
             target:
               entity_id: !input battery_control_time
             data:
-              value: "{{ battery_control_time }}"
+              value: "{{ time_until_next_slot }}"
           - action: input_button.press
             target:
               entity_id: !input hold_battery
             data: {}
       - conditions:
           - condition: template
-            value_template: "{{ battery_power_charge > 0 }}"
+            value_template: "{{ states(emhass_p_grid_forecast_var) | float > 0 and battery_forecast_charge > 0 }}"
         sequence:
+          - variables:
+              battery_power_charge: >-
+                {{ state_attr(battery_power_charge_var, 'max') }}
+              battery_control_time: >-
+                {{ time_until_next_slot * min(battery_forecast_charge / battery_power_charge, 1) }}
           - action: input_number.set_value
             target:
               entity_id: input_number.solar_battery_control_time
