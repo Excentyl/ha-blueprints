@@ -72,7 +72,6 @@ blueprint:
   source_url: https://github.com/Excentyl/ha-blueprints/blob/main/charge_battery_using_emhass.yaml
 variables:
   battery_capacity_var: !input battery_capacity
-  battery_power_charge_var: !input battery_power_charge
   emhass_p_batt_forecast_var: !input emhass_p_batt_forecast
   emhass_p_grid_forecast_var: !input emhass_p_grid_forecast
 mode: single
@@ -115,20 +114,15 @@ actions:
           - condition: template
             value_template: "{{ states(emhass_p_grid_forecast_var) | float > 0 and battery_forecast_charge > 0 }}"
         sequence:
-          - variables:
-              battery_power_charge: >-
-                {{ state_attr(battery_power_charge_var, 'max') }}
-              battery_control_time: >-
-                {{ time_until_next_slot * min(battery_forecast_charge / battery_power_charge, 1) }}
           - action: input_number.set_value
             target:
               entity_id: input_number.solar_battery_control_time
             data:
-              value: "{{ battery_control_time }}"
+              value: "{{ time_until_next_slot }}"
           - action: input_number.set_value
             metadata: {}
             data:
-              value: "{{ battery_power_charge }}"
+              value: "{{ battery_forecast_charge }}"
             target:
               entity_id: !input battery_power_charge
           - action: input_button.press
