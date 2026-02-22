@@ -90,16 +90,12 @@ actions:
         value_template: "{{ true }}"
     then: !input publish_emhass_data
   - variables:
-      battery_power_charge: |-
-        {% if states(emhass_p_grid_forecast_var) | float > 0 %}
-          {{ -min(0, states(emhass_p_batt_forecast_var) | float | round) }}
-        {% else %}
-          0
-        {% endif %}
-      battery_control_time: >-
-        {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
+      battery_forecast_charge: >-
+        {{ -min(states(emhass_p_batt_forecast_var) | float, 0) }}
       battery_hold: >-
         {{ states(emhass_p_grid_forecast_var) | float > 0 and states(emhass_p_batt_forecast_var) | float == 0 }}
+      time_until_next_slot: >-
+        {{ (as_timestamp(state_attr(emhass_p_batt_forecast_var, 'battery_scheduled_power')[1]['date']) - as_timestamp(now())) | round }}
   - choose:
       - conditions:
           - condition: template
@@ -109,24 +105,24 @@ actions:
             target:
               entity_id: !input battery_control_time
             data:
-              value: "{{ battery_control_time }}"
+              value: "{{ time_until_next_slot }}"
           - action: input_button.press
             target:
               entity_id: !input hold_battery
             data: {}
       - conditions:
           - condition: template
-            value_template: "{{ battery_power_charge > 0 }}"
+            value_template: "{{ states(emhass_p_grid_forecast_var) | float > 0 and battery_forecast_charge > 0 }}"
         sequence:
           - action: input_number.set_value
             target:
               entity_id: input_number.solar_battery_control_time
             data:
-              value: "{{ battery_control_time }}"
+              value: "{{ time_until_next_slot }}"
           - action: input_number.set_value
             metadata: {}
             data:
-              value: "{{ battery_power_charge }}"
+              value: "{{ battery_forecast_charge }}"
             target:
               entity_id: !input battery_power_charge
           - action: input_button.press
