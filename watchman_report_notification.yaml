@@ -11,9 +11,9 @@ blueprint:
           filter:
             - integration: watchman
           multiple: false
-    watchman_missing_services:
-      name: Watchman Missing Services
-      description: The missing services entity provided by Watchman.
+    watchman_missing_actions:
+      name: Watchman Missing Actions
+      description: The missing actions entity provided by Watchman.
       selector:
         entity:
           filter:
@@ -32,7 +32,7 @@ trigger:
   - platform: state
     entity_id:
       - !input watchman_missing_entities
-      - !input watchman_missing_services
+      - !input watchman_missing_actions
 condition: []
 action:
   - if:
@@ -42,7 +42,7 @@ action:
             entity_id: !input watchman_missing_entities
             above: 0
           - condition: numeric_state
-            entity_id: !input watchman_missing_services
+            entity_id: !input watchman_missing_actions
             above: 0
     then:
       - action: watchman.report
