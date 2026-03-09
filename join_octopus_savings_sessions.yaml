@@ -30,6 +30,15 @@ action:
     then:
       - repeat:
           sequence:
+            - action: octopus_energy.join_octoplus_saving_session_event
+              data:
+                event_code:
+                  "{% for saving_session in state_attr(savings_session_event_entity_var,
+                  'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
+                  \   {{ saving_session.code }}\n    {% break %}\n  {% endif %}\n{% endfor
+                  %}"
+              target:
+                entity_id: !input savings_session_event_entity
             - action: notify.notify
               data:
                 title: Upcoming Saving Session
@@ -43,17 +52,6 @@ action:
                 data:
                   group: Upcoming Saving Session
                   notification_icon: mdi:home-lightning-bolt
-              enabled: true
-            - action: octopus_energy.join_octoplus_saving_session_event
-              data:
-                event_code:
-                  "{% for saving_session in state_attr(savings_session_event_entity_var,
-                  'available_events') %}\n  {% if saving_session.id == repeat.item %}\n
-                  \   {{ saving_session.code }}\n    {% break %}\n  {% endif %}\n{% endfor
-                  %}"
-              target:
-                entity_id: !input savings_session_event_entity
-              enabled: true
           for_each:
             "{% set ns = namespace(saving_sessions = []) %} {% for saving_session
             in state_attr(savings_session_event_entity_var, 'available_events') %}\n  {%
