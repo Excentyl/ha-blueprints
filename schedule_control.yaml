@@ -28,6 +28,7 @@ blueprint:
             - domain:
                 - binary_sensor
                 - input_boolean
+                - schedule
           multiple: true
     schedule_off_action:
       name: Schedule Off Action
